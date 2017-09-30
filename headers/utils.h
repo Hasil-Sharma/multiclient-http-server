@@ -1,9 +1,12 @@
 #include <stdio.h>
-
+#include <stdlib.h>
 #ifndef UTILS_H
 #define UTILS_H
 
-#define MAXFILEBUFFER 256
+#define TRUE 1
+#define FALSE 0
+
+#define MAXFILEBUFF 256
 #define MAXCONTENTTYPE 20
 #define LISTEN_PORT_CONF "Listen"
 #define LISTEN_PORT_CONF_LEN 6
@@ -15,6 +18,7 @@
 #define KEEP_ALIVE_TIME_CONF_LEN 15
 #define CONTENT_TYPE_START "."
 #define CONTENT_TYPE_START_LEN 1
+
 typedef struct content_type_struct content_type_struct;
 
 struct config_struct {
@@ -31,7 +35,6 @@ struct content_type_struct {
   char *type;
 };
 
-
 typedef struct config_struct config_struct;
 
 void readconf(config_struct *, char *);
@@ -39,6 +42,8 @@ void get_second_string(char **, char *, char);
 void get_first_string(char **, char *, char);
 void print_config_struct(config_struct *);
 void remove_first_last_char(char **);
+void checkforerror(int, char *);
 
 #endif
+
 
