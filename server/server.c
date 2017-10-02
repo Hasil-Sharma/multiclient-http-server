@@ -17,15 +17,16 @@ int main(){
   config_struct conf;
   struct sockaddr_in remote_address;
   socklen_t addr_size;
-  char req_buff[MAXREQRESBUFFER], res_buff[MAXREQRESBUFFER], *remote_ip;
+  char req_buff[MAXREQRESBUFFER], *remote_ip;
+  u_char res_buff[MAXREQRESBUFFER];
 
   addr_size = sizeof(remote_address);
 
   memset(&conf, 0, sizeof(conf));
-  readconf(&conf, "ws.conf");
+  read_conf(&conf, "ws.conf");
   //print_config_struct(&conf);
 
-  listen_fd = getsocket(&conf);
+  listen_fd = get_socket(&conf);
 
   while(TRUE){
     
@@ -63,8 +64,8 @@ int main(){
       }
       
       /*DEBUGSS("Client Sent", req_buff);*/
-      resbytes = processrequest(req_buff, res_buff, nbytes);
-      sendresponse(conn_fd, res_buff, resbytes);
+      resbytes = process_request(req_buff, res_buff, nbytes, &conf);
+      send_response(conn_fd, res_buff, resbytes);
 
     }
   }

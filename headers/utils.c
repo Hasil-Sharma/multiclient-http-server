@@ -12,7 +12,7 @@ void checkforerror(int val, char *error_msg){
   }
 }
 
-void readconf(config_struct* conf, char *file_name){
+void read_conf(config_struct* conf, char *file_name){
 
   FILE *fp;
   int file_line_len, content_index;
@@ -81,6 +81,13 @@ void get_first_string(char **dest, char *src, char delim){
   int offset = delim_char - src;
   *dest = strndup(src, offset);
 
+}
+
+void get_extension(char **dest, char *src){
+
+  char *delim_char = strrchr(src, '.');
+  *dest = strdup(delim_char);
+  // dest will have the "." in the starting
 }
 
 void print_config_struct(config_struct * conf){

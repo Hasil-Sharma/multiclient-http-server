@@ -37,9 +37,10 @@ struct content_type_struct {
 
 typedef struct config_struct config_struct;
 
-void readconf(config_struct *, char *);
+void read_conf(config_struct *, char *);
 void get_second_string(char **, char *, char);
 void get_first_string(char **, char *, char);
+void get_extension(char **, char *);
 void print_config_struct(config_struct *);
 void remove_first_last_char(char **);
 void checkforerror(int, char *);
