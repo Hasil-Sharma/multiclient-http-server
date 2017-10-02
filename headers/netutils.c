@@ -61,14 +61,11 @@ ssize_t updatebuffwithdelim(char *buff, char *content, ssize_t content_length){
 
 }
 
-ssize_t updatebuffwithresend(char *buff){
 
-  ssize_t len;
-  len = updatebuffasdelim(buff);
-  len += updatebuffasdelim(buff + len);
-  return len;
+/*void fillgetresstruct(req_struct *rq, res_struct *rs){*/
 
-}
+/*}*/
+
 
 ssize_t processrequest(char * src_buff, char * dest_buff, ssize_t src_buff_len){ 
 
@@ -76,11 +73,16 @@ ssize_t processrequest(char * src_buff, char * dest_buff, ssize_t src_buff_len){
   ssize_t dest_buff_size = 0;
   ssize_t dest_content_length = 0;
   char file_name[MAXFILENAMEPATH];
-  req_struct rq;  
+  req_struct rq;
+  res_struct rs;
+  
   memset(&rq, 0, sizeof(rq));
+  memset(&rs, 0, sizeof(rs));
 
   getreqstruct(&rq, src_buff, src_buff_len);
-  if (strncmp(rq.method, GET_HEADER, GET_HEADER_LEN) == 0){
+  if (strncmp(rq.method, GET_HEADER, GET_HEADER_LEN) == 0) //fillgetresstruct(&rq, &rs);
+  
+  {
      
      dest_buff_size += updatebuffwithdelim(dest_buff + dest_buff_size, 
          HTTP10_RES_OK, HTTP10_RES_OK_LEN);
@@ -103,7 +105,7 @@ ssize_t processrequest(char * src_buff, char * dest_buff, ssize_t src_buff_len){
          HTTP_RES_SAMPLE_CONTENT, 11);
   }
   
-  dest_buff_size += updatebuffwithresend(dest_buff + dest_buff_size);
+  dest_buff_size += updatebuff(dest_buff + dest_buff_size, HTTP_RES_END, HTTP_RES_END_LEN);
   return dest_buff_size;
 }
 
@@ -150,13 +152,24 @@ void getreqstruct(req_struct *rq, char *buff, ssize_t buff_len){
 }
 
 void debugreqstruct(req_struct * rq){
+
   DEBUGS("Printing request struct");
   DEBUGSS("\tMethod", rq->method);
   DEBUGSS("\tURI", rq->uri);
   DEBUGSS("\tHTTP Version", rq->http_version);
   DEBUGSS("\tKeep Connection Alive", rq->connection_keep_alive);
+
 }
 
+void debugresstruct(res_struct* res){
+  
+  DEBUGS("Printing Response Struct");
+  DEBUGSS("\tSTATUS LINE", res->status_line);
+  DEBUGSS("\tCONTENT-LENGTH", res->content_length);
+  DEBUGSS("\tCONTENT-TYPE", res->content_type);
+  DEBUGSS("\tBODY", res->body);
+
+}
 void fillgetreqstruct(char * str, req_struct *rq){
  
   char *temp1_str, *temp2_str;
