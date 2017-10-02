@@ -63,8 +63,8 @@ int main(){
       }
       
       /*DEBUGSS("Client Sent", req_buff);*/
-      recvbytes = processrequest(req_buff, res_buff, nbytes);
-      sendresponse(conn_fd, res_buff, nbytes);
+      resbytes = processrequest(req_buff, res_buff, nbytes);
+      sendresponse(conn_fd, res_buff, resbytes);
 
     }
   }

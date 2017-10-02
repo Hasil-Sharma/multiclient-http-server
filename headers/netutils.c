@@ -42,7 +42,36 @@ int getsocket(config_struct * conf){
 
 }
 
+
+ssize_t updatebuff(char * buff, char * content, ssize_t content_length){
+  memcpy(buff, content, content_length);
+  return content_length;
+}
+
+
+ssize_t updatebuffasdelim(char *buff){
+  return updatebuff(buff, HTTP_RES_DELIM, HTTP_RES_DELIM_LEN);
+}
+
+ssize_t updatebuffwithdelim(char *buff, char *content, ssize_t content_length){
+
+  content_length = updatebuff(buff, content, content_length);
+  content_length += updatebuffasdelim(buff + content_length); 
+  return content_length;
+
+}
+
+ssize_t updatebuffwithresend(char *buff){
+
+  ssize_t len;
+  len = updatebuffasdelim(buff);
+  len += updatebuffasdelim(buff + len);
+  return len;
+
+}
+
 ssize_t processrequest(char * src_buff, char * dest_buff, ssize_t src_buff_len){ 
+
   int i;
   ssize_t dest_buff_size = 0;
   ssize_t dest_content_length = 0;
@@ -52,22 +81,30 @@ ssize_t processrequest(char * src_buff, char * dest_buff, ssize_t src_buff_len){
 
   getreqstruct(&rq, src_buff, src_buff_len);
   if (strncmp(rq.method, GET_HEADER, GET_HEADER_LEN) == 0){
-     strcpy(dest_buff, HTTP10_RES_OK);
-     dest_buff_size += HTTP10_RES_OK_LEN;
+     
+     dest_buff_size += updatebuffwithdelim(dest_buff + dest_buff_size, 
+         HTTP10_RES_OK, HTTP10_RES_OK_LEN);
+     
+     dest_buff_size += updatebuff(dest_buff + dest_buff_size, 
+         HTTP_RES_CONTENT_TYPE, HTTP_RES_CONTENT_TYPE_LEN);
+     
+     dest_buff_size += updatebuffwithdelim(dest_buff + dest_buff_size, 
+         HTTP_RES_SAMPLE_CONTENT_TYPE, HTTP_RES_SAMPLE_CONTENT_TYPE_LEN);
+
+     dest_buff_size += updatebuff(dest_buff + dest_buff_size, 
+         HTTP_RES_CONTENT_LENGTH, HTTP_RES_CONTENT_LENGTH_LEN);
+     
+     dest_buff_size += updatebuffwithdelim(dest_buff + dest_buff_size,
+         HTTP_RES_SAMPLE_CONTENT_LEN, 2);
+
+     dest_buff_size += updatebuffasdelim(dest_buff + dest_buff_size);
+
+     dest_buff_size += updatebuff(dest_buff + dest_buff_size, 
+         HTTP_RES_SAMPLE_CONTENT, 11);
   }
   
-  
-  dest_buff[dest_buff_size++] = '\n';
-  dest_buff[dest_buff_size++] = '\n';
-  dest_buff[dest_buff_size++] = '\n';
- 
+  dest_buff_size += updatebuffwithresend(dest_buff + dest_buff_size);
   return dest_buff_size;
-  /*char *temp_string = "Server Replied: ";*/
-  /*ssize_t temp_string_len = strlen(temp_string);*/
-
-  /*memcpy(dest_buff, temp_string, temp_string_len);*/
-  /*memcpy(dest_buff + temp_string_len + 1, src_buff, src_buff_len);*/
-  /*return temp_string_len + src_buff_len + 1;*/
 }
 
 void getreqstruct(req_struct *rq, char *buff, ssize_t buff_len){
@@ -102,9 +139,9 @@ void getreqstruct(req_struct *rq, char *buff, ssize_t buff_len){
     // Skip the HTTP_REQ_DELIM
     index += HTTP_REQ_DELIM_LEN;
 
-    DEBUGSS("Part of Request", temp_str);
+    //DEBUGSS("Part of Request", temp_str);
     
-    if(strncmp(temp_str, GET_HEADER, GET_HEADER_LEN) == 0) fillgetvars(temp_str, rq);
+    if(strncmp(temp_str, GET_HEADER, GET_HEADER_LEN) == 0) fillgetreqstruct(temp_str, rq);
     free(temp_str);
   }
 
@@ -119,7 +156,8 @@ void debugreqstruct(req_struct * rq){
   DEBUGSS("\tHTTP Version", rq->http_version);
   DEBUGSS("\tKeep Connection Alive", rq->connection_keep_alive);
 }
-void fillgetvars(char * str, req_struct *rq){
+
+void fillgetreqstruct(char * str, req_struct *rq){
  
   char *temp1_str, *temp2_str;
   int uri_len;
