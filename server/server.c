@@ -11,7 +11,7 @@
 #include "debug.h"
 
 int main(){
-
+  struct timeval tv;
   int listen_fd, conn_fd;
   pid_t pid;
   ssize_t recvbytes, resbytes, nbytes;
@@ -25,8 +25,9 @@ int main(){
 
   memset(&conf, 0, sizeof(config_struct));
   read_conf(&conf, "ws.conf");
-  //print_config_struct(&conf);
-
+  print_config_struct(&conf);
+  
+  tv.tv_sec = conf.keep_alive_time;
   listen_fd = get_socket(&conf);
 
   while(TRUE){
@@ -57,21 +58,24 @@ int main(){
       while(TRUE){
         
         nbytes = 0;
+        
+        setsockopt(conn_fd, SOL_SOCKET, SO_RCVTIMEO, (const char *) &tv, sizeof(struct timeval));
 
         while(TRUE){
 
           DEBUGSN("Reading Child PID:", getpid());
           recvbytes = recv(conn_fd, req_buff + nbytes, MAXREQRESBUFFER, 0);
+          if(recvbytes == 0 | recvbytes == -1) break;
           checkforerror(recvbytes, "Error with recv"); 
-          if(recvbytes == 0) break;
           nbytes += recvbytes;
           /*req_buff[nbytes] = '\0';*/ // No need buffer is already null char terminated
           if (strstr(req_buff, HTTP_REQ_END)) break;
 
         }
-
-        if(recvbytes == 0) {
+        
+        if(recvbytes == 0 || recvbytes == -1) {
           DEBUGSN("Closing Child PID:", getpid());
+          if (recvbytes == -1) DEBUGS("Socket timing out");
           DEBUGSS("Connection Closed by", remote_ip);
           DEBUGSN("Port", ntohs(remote_address.sin_port));
           close(conn_fd);
