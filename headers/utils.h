@@ -22,7 +22,7 @@
 typedef struct content_type_struct content_type_struct;
 
 struct config_struct {
-  int port_number;
+  u_short port_number;
   char* doc_root;
   char* doc_index;
   content_type_struct *content_type[MAXCONTENTTYPE];

@@ -33,7 +33,7 @@ void read_conf(config_struct* conf, char *file_name){
     get_second_string(&temp_char_ptr,line, ' ');
     strcpy(buff, temp_char_ptr); 
     if(strncmp(line, LISTEN_PORT_CONF, LISTEN_PORT_CONF_LEN) == 0) {
-      conf->port_number = atoi(buff);
+      conf->port_number = (u_short)strtoul(buff, NULL, 10);
     } else if (strncmp(line, DOCUMENT_ROOT_CONF, DOCUMENT_ROOT_CONF_LEN) == 0) {
       conf->doc_root = strdup(buff);
       remove_first_last_char(&conf->doc_root);

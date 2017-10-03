@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <errno.h>
+#include <unistd.h>
 #include "utils.h"
 #include "netutils.h"
 #include "debug.h"
@@ -156,10 +157,12 @@ ssize_t res_struct_to_buff(res_struct *rs, u_char * buff){
                       "%s%s"
                       "%s%s%s"
                       "%s%d%s"
+                      "%s%s%s"
                       "%s",
                       rs->status_line, HTTP_RES_DELIM,  
                       HTTP_RES_CONTENT_TYPE, rs->content_type, HTTP_RES_DELIM,
                       HTTP_RES_CONTENT_LENGTH, rs->content_length, HTTP_RES_DELIM,
+                      HTTP_RES_CONNECTION, HTTP_RES_KEEP_ALIVE, HTTP_RES_DELIM,
                       HTTP_RES_DELIM);
   
   memcpy(buff + print_size, rs->body, rs->content_length);
@@ -256,6 +259,7 @@ void get_req_struct(req_struct *rq, char *buff, ssize_t buff_len){
 
 void debug_req_struct(req_struct * rq){
 
+  DEBUGSN("Child PID:", getpid());
   DEBUGS("Printing request struct");
   DEBUGSS("\tMethod", rq->method);
   DEBUGSS("\tURI", rq->uri);
@@ -266,6 +270,7 @@ void debug_req_struct(req_struct * rq){
 
 void debug_res_struct(res_struct* res){
   
+  DEBUGSN("Child PID:", getpid());
   DEBUGS("Printing Response Struct");
   DEBUGSS("\tSTATUS LINE", res->status_line);
   DEBUGSN("\tCONTENT-LENGTH", res->content_length);
