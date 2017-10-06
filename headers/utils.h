@@ -44,6 +44,7 @@ void get_extension(char **, char *);
 void print_config_struct(config_struct *);
 void remove_first_last_char(char **);
 void checkforerror(int, char *);
+ssize_t fill_buff_with_templates(char *, const char **, int );
 
 #endif
 

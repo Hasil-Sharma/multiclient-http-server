@@ -90,6 +90,20 @@ void get_extension(char **dest, char *src){
   // dest will have the "." in the starting
 }
 
+ssize_t fill_buff_with_templates(char *buff, const char **templates, int template_len){
+	ssize_t buff_len;
+	char *temp;
+	int i;
+	temp = strdup("%s");
+	for(i = 0; i < template_len; i++){
+		buff_len = sprintf(buff, temp, templates[i]);
+		free(temp); 
+		temp = strdup(buff);
+	}
+	free(temp);
+	return buff_len;		
+}
+
 void print_config_struct(config_struct * conf){
   
   int i;

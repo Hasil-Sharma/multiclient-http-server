@@ -25,7 +25,7 @@ int main(){
 
   memset(&conf, 0, sizeof(config_struct));
   read_conf(&conf, "ws.conf");
-  print_config_struct(&conf);
+  /*print_config_struct(&conf);*/
   
   tv.tv_sec = conf.keep_alive_time;
   listen_fd = get_socket(&conf);

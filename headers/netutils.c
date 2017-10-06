@@ -86,12 +86,65 @@ int check_extension_type(char *extension, char **type, config_struct *conf){
   return flag;
 }
 
+void fill_error_bad_req_res_struct(req_struct *rq, res_struct *rs, config_struct *conf, char *flag){
+  char data[MAXREQRESBUFFER];
+  ssize_t data_length, template_size;
+  char *temp;
+	const char *template_array[MAX_TEMPLATES];
+	
+  template_array[0] = HTTP_GENERIC_TEMPLATE;
+	if (strncmp(flag, HTTP_BAD_REQ_FLAG, HTTP_BAD_REQ_FLAG_LEN) == 0) {
+
+		template_array[1] = HTTP_RES_BAD_REQ_TEMPLATE; 
+
+		rs->status_line = strdup(HTTP_RES_BAD_REQ);
+		rs->content_type = strdup(HTTP_RES_BAD_REQ_TYPE);
+
+		if (strcmp(flag, HTTP_BAD_REQ_INVALID_METHOD_FLAG) == 0) {
+
+			template_array[2] = HTTP_RES_BAD_REQ_INVALID_METHOD_TEMPLATE;
+			template_array[3] = rq->method;
+      template_size = 4;
+
+		} else if (strcmp(flag, HTTP_BAD_REQ_INVALID_URI_FLAG) == 0) {
+      
+      template_array[2] = HTTP_RES_BAD_REQ_INVALID_URI_TEMPLATE;
+      template_array[3] = rq->uri;
+      template_size = 4;
+
+    } else if (strcmp(flag, HTTP_BAD_REQ_INVALID_TYPE_FLAG) == 0) {
+
+      template_array[2] = HTTP_RES_BAD_REQ_INVALID_FILE_TYPE_TEMPLATE;
+      template_array[3] = rq->uri;
+      template_size = 4;
+
+    }
+
+    data_length = fill_buff_with_templates(data, template_array, 4);
+    rs->content_length = data_length;
+    rs->body = (u_char*)malloc(data_length*sizeof(u_char));
+    memcpy(rs->body, data, data_length);
+
+	} else if (strcmp(flag, HTTP_RES_404_FLAG) == 0){
+    rs->status_line = strdup(HTTP_RES_404);
+    rs->content_type = strdup(HTTP_RES_404_TYPE);
+    template_array[1] = HTTP_RES_404_FILE_TEMPLATE;
+    template_array[2] = rq->uri;
+    data_length = fill_buff_with_templates(data, template_array, 3);
+    rs->content_length = data_length;
+    rs->body = (u_char*)malloc(data_length*sizeof(u_char));
+    memcpy(rs->body, data, data_length);
+
+  } else {
+   fprintf(stderr, "Unknown Flag : %s", flag);
+   exit(1); 
+	}
+} 
+
+
 void fill_get_res_struct(req_struct *rq, res_struct *rs, config_struct *conf){
 
-  char *file_name;
-  char *extension;
-  char *type;
-
+  char *file_name, *extension, *type;
   char file_path[MAXFILENAMEPATH];
   FILE *fp;
   
@@ -110,22 +163,28 @@ void fill_get_res_struct(req_struct *rq, res_struct *rs, config_struct *conf){
     }
     
     if (!(fp = fopen(file_path, "rb"))) {
-      perror("Error in opening file path:");
-      exit(1);
+			// Case when request file doesn't exist
+      fill_error_bad_req_res_struct(rq, rs, conf, HTTP_RES_404_FLAG);
     }
 
     // TODO: Test it works fine
-    rs->content_length = fill_res_body(fp, &(rs->body)); 
-    rs->status_line = strdup(HTTP10_RES_OK); 
+    
+    if(fp){
+      rs->content_length = fill_res_body(fp, &(rs->body)); 
+      rs->status_line = strdup(HTTP_RES_OK); 
 
-    fclose(fp);
+      fclose(fp);
+    }
+
     free(extension);
     free(file_name);
 
   } else {
     // Case when unsupported file type is requested
-    fprintf(stderr, "Unsupported file type Not Implemented %s: %s", extension, strerror(errno));
-    exit(1);
+
+    fill_error_bad_req_res_struct(rq, rs, conf, HTTP_BAD_REQ_INVALID_TYPE_FLAG);
+    /*fprintf(stderr, "Unsupported file type Not Implemented %s: %s", extension, strerror(errno));*/
+    /*exit(1);*/
   }
 }
 
@@ -162,7 +221,7 @@ ssize_t res_struct_to_buff(res_struct *rs, u_char * buff){
                       rs->status_line, HTTP_RES_DELIM,  
                       HTTP_RES_CONTENT_TYPE, rs->content_type, HTTP_RES_DELIM,
                       HTTP_RES_CONTENT_LENGTH, rs->content_length, HTTP_RES_DELIM,
-                      HTTP_RES_CONNECTION, HTTP_RES_KEEP_ALIVE, HTTP_RES_DELIM,
+                      HTTP_RES_CONNECTION, HTTP_RES_CONNECTION_KEEP_ALIVE, HTTP_RES_DELIM,
                       HTTP_RES_DELIM);
   
   memcpy(buff + print_size, rs->body, rs->content_length);
@@ -184,42 +243,25 @@ ssize_t process_request(char * src_buff, u_char * dest_buff, ssize_t src_buff_le
 
   get_req_struct(&rq, src_buff, src_buff_len);
   if (strncmp(rq.method, GET_HEADER, GET_HEADER_LEN) == 0) fill_get_res_struct(&rq, &rs, conf);
-  else { perror("HTTP Method Not Implemented:"); exit(1); }  
+  else { //{ perror("HTTP Method Not Implemented:"); exit(1); }
+   fill_error_bad_req_res_struct(&rq, &rs, conf, HTTP_BAD_REQ_INVALID_METHOD_FLAG); 
+  }
   
   debug_res_struct(&rs);
   dest_buff_size = res_struct_to_buff(&rs, dest_buff);
-  /*{*/
-     
-     /*dest_buff_size += updatebuffwithdelim(dest_buff + dest_buff_size, */
-         /*HTTP10_RES_OK, HTTP10_RES_OK_LEN);*/
-     
-     /*dest_buff_size += updatebuff(dest_buff + dest_buff_size, */
-         /*HTTP_RES_CONTENT_TYPE, HTTP_RES_CONTENT_TYPE_LEN);*/
-     
-     /*dest_buff_size += updatebuffwithdelim(dest_buff + dest_buff_size, */
-         /*HTTP_RES_SAMPLE_CONTENT_TYPE, HTTP_RES_SAMPLE_CONTENT_TYPE_LEN);*/
-
-     /*dest_buff_size += updatebuff(dest_buff + dest_buff_size, */
-         /*HTTP_RES_CONTENT_LENGTH, HTTP_RES_CONTENT_LENGTH_LEN);*/
-     
-     /*dest_buff_size += updatebuffwithdelim(dest_buff + dest_buff_size,*/
-         /*HTTP_RES_SAMPLE_CONTENT_LEN, 2);*/
-
-     /*dest_buff_size += updatebuffasdelim(dest_buff + dest_buff_size);*/
-
-     /*dest_buff_size += updatebuff(dest_buff + dest_buff_size, */
-         /*HTTP_RES_SAMPLE_CONTENT, 11);*/
-  /*}*/
-  
-  /*dest_buff_size += updatebuff(dest_buff + dest_buff_size, HTTP_RES_END, HTTP_RES_END_LEN);*/
+	
+	free_res_struct(&rs);
+	free_req_struct(&rq);
   return dest_buff_size;
 }
+
 
 void get_req_struct(req_struct *rq, char *buff, ssize_t buff_len){
 
   char *temp_char, *temp_str, *temp_buff;
   ssize_t temp_buff_len, temp_len;
   int i, index;
+  int flag = TRUE;
 
   temp_buff = (char *) malloc((buff_len + 1)*sizeof(char));
   memset(temp_buff, 0, sizeof(temp_buff));
@@ -227,8 +269,6 @@ void get_req_struct(req_struct *rq, char *buff, ssize_t buff_len){
   memcpy(temp_buff, buff, buff_len);
   temp_buff_len = buff_len;
   
-  /*for(i = 0; i < HTTP_REQ_END_LEN; i++)*/
-    /*temp_buff[--temp_buff_len] = '\0';*/
   index = 0;
   while((temp_char = strstr(temp_buff + index, HTTP_REQ_DELIM))){
     
@@ -237,11 +277,7 @@ void get_req_struct(req_struct *rq, char *buff, ssize_t buff_len){
 
     if (temp_len == 0) break;
 
-    temp_str = (char *) malloc((temp_len+1) *sizeof(char));
-    memset(temp_str, 0, sizeof(temp_str));
-    memcpy(temp_str, temp_buff + index, temp_len);
-    temp_str[temp_len] = '\0';
-
+    temp_str = strndup(temp_buff + index, temp_len);
     // Skip the entire string which whas just processed
     index += temp_len;
     // Skip the HTTP_REQ_DELIM
@@ -249,52 +285,48 @@ void get_req_struct(req_struct *rq, char *buff, ssize_t buff_len){
 
     //DEBUGSS("Part of Request", temp_str);
     
-    if(strncmp(temp_str, GET_HEADER, GET_HEADER_LEN) == 0) fill_get_req_struct(temp_str, rq);
+    // Assuming that the first line is of type METHOD URI HTTP_VERSION
+    if (flag == TRUE) {
+      flag = FALSE;
+      fill_req_struct(temp_str, rq);
+    }
+
+    // If the string about Connection
+    if (strncmp(temp_str, HTTP_REQ_CONNECTION_PARAM, HTTP_REQ_CONNECTION_PARAM_LEN) == 0) fill_req_struct(temp_str, rq);
     free(temp_str);
+
+    // rest of the things are ignored
   }
 
   free(temp_buff);
   debug_req_struct(rq);
 }
 
-void debug_req_struct(req_struct * rq){
-
-  DEBUGSN("Child PID:", getpid());
-  DEBUGS("Printing request struct");
-  DEBUGSS("\tMethod", rq->method);
-  DEBUGSS("\tURI", rq->uri);
-  DEBUGSS("\tHTTP Version", rq->http_version);
-  DEBUGSS("\tKeep Connection Alive", rq->connection_keep_alive);
-
-}
-
-void debug_res_struct(res_struct* res){
+void fill_req_struct(char *str, req_struct *rq){
+  char *temp1, *temp2;
+  ssize_t str_len;
   
-  DEBUGSN("Child PID:", getpid());
-  DEBUGS("Printing Response Struct");
-  DEBUGSS("\tSTATUS LINE", res->status_line);
-  DEBUGSN("\tCONTENT-LENGTH", res->content_length);
-  DEBUGSS("\tCONTENT-TYPE", res->content_type);
-  DEBUGSS("\tBODY", res->body);
+  if (strncmp(str, HTTP_REQ_CONNECTION_PARAM, HTTP_REQ_CONNECTION_PARAM_LEN) == 0){
+    
+    temp1 = strchr(str, ' ');
+    temp2 = strdup(temp1 + 1); 
+    rq->connection = temp2;
 
-}
-void fill_get_req_struct(char * str, req_struct *rq){
- 
-  char *temp1_str, *temp2_str;
-  int uri_len;
-  rq->method = (char *) malloc((GET_HEADER_LEN + 1) * sizeof(char));
-  memcpy(rq->method, GET_HEADER, GET_HEADER_LEN);
-  rq->method[GET_HEADER_LEN] = '\0';
-  
-  // Last occurance of space handling cases when file names have spaces
-  temp1_str = strrchr(str,' '); 
+  } else { 
 
-  // Pointer just after the first space
-  temp2_str = str + GET_HEADER_LEN + 1; 
+    temp1 = strchr(str, ' '); // pointer of first space
+    str_len = temp1 - str;
+    
+    rq->method = strndup(str, str_len);
 
-  uri_len = temp1_str - temp2_str;
-  rq->uri = strndup(temp2_str, uri_len);
-  rq->http_version = strdup(temp1_str + 1);
+    temp2 = strrchr(str, ' '); // point to the last space 
+    str_len = temp2 - 1 - temp1;
+    
+    rq->uri =  strndup(temp1 + 1, str_len);
+
+    rq->http_version = strdup(temp2 + 1);
+
+  }
 }
 
 void send_response(int socket, char *buff, ssize_t buff_len){
@@ -312,3 +344,41 @@ int checkifget(char * buff){
   if(strncmp(buff, GET_HEADER, GET_HEADER_LEN) == 0) return TRUE;
   return FALSE;
 }
+
+
+
+void free_res_struct(res_struct *rs){
+	free(rs->status_line);
+	free(rs->content_type);
+	free(rs->body);
+}
+
+void free_req_struct(req_struct *rq){
+	free(rq->method);
+	free(rq->uri);
+	free(rq->connection);
+	free(rq->http_version);
+}
+
+void debug_req_struct(req_struct * rq){
+
+  DEBUGSN("Child PID:", getpid());
+  DEBUGS("Printing request struct");
+  DEBUGSS("\tMethod", rq->method);
+  DEBUGSS("\tURI", rq->uri);
+  DEBUGSS("\tHTTP Version", rq->http_version);
+  DEBUGSS("\tKeep Connection Alive", rq->connection);
+
+}
+
+void debug_res_struct(res_struct* res){
+  
+  DEBUGSN("Child PID:", getpid());
+  DEBUGS("Printing Response Struct");
+  DEBUGSS("\tSTATUS LINE", res->status_line);
+  DEBUGSN("\tCONTENT-LENGTH", res->content_length);
+  DEBUGSS("\tCONTENT-TYPE", res->content_type);
+  DEBUGSS("\tBODY", res->body);
+
+}
+
