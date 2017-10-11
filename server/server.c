@@ -11,6 +11,7 @@
 #include "debug.h"
 
 int main(){
+
   struct timeval tv;
   int listen_fd, conn_fd;
   pid_t pid;
@@ -20,7 +21,7 @@ int main(){
   socklen_t addr_size;
   char req_buff[MAXREQRESBUFFER], *remote_ip;
   u_char res_buff[MAXREQRESBUFFER];
-
+  process_req_res_struct res_method;
   addr_size = sizeof(struct sockaddr_in);
 
   memset(&conf, 0, sizeof(config_struct));
@@ -83,9 +84,15 @@ int main(){
         }
         
         /*DEBUGSS("Client Sent", req_buff);*/
-        resbytes = process_request(req_buff, res_buff, nbytes, &conf);
-        send_response(conn_fd, res_buff, resbytes);
-
+        memset(&res_method, 0, sizeof(struct process_req_res_struct));
+        process_request(req_buff, res_buff, nbytes, &conf, &res_method);
+        send_response(conn_fd, res_buff, res_method.resbytes);
+        
+        if(res_method.conn_alive_flag == FALSE){
+          DEBUGS("Closing Connection: no-keep-alive");
+          close(conn_fd);
+          break;
+        }
       }
 
     }
