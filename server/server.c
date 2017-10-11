@@ -14,6 +14,7 @@ int main(){
 
   struct timeval tv;
   int listen_fd, conn_fd;
+  int post_flag, first_flag;
   pid_t pid;
   ssize_t recvbytes, resbytes, nbytes;
   config_struct conf;
@@ -56,12 +57,14 @@ int main(){
       continue; 
 
     } else {
-      while(TRUE){
-        
-        nbytes = 0;
-        
-        setsockopt(conn_fd, SOL_SOCKET, SO_RCVTIMEO, (const char *) &tv, sizeof(struct timeval));
 
+      setsockopt(conn_fd, SOL_SOCKET, SO_RCVTIMEO, (const char *) &tv, sizeof(struct timeval));
+  
+      post_flag = FALSE;
+      first_flag = TRUE;
+      while(TRUE){
+      
+        nbytes = 0;  
         while(TRUE){
 
           DEBUGSN("Reading Child PID:", getpid());
@@ -69,11 +72,24 @@ int main(){
           if(recvbytes == 0 | recvbytes == -1) break;
           checkforerror(recvbytes, "Error with recv"); 
           nbytes += recvbytes;
+
+          if(first_flag == TRUE){
+            first_flag = FALSE;
+            post_flag = TRUE ? !strncmp(req_buff, POST_HEADER, POST_HEADER_LEN) : FALSE;
+          }
           /*req_buff[nbytes] = '\0';*/ // No need buffer is already null char terminated
-          if (strstr(req_buff, HTTP_REQ_END)) break;
+          if (strstr(req_buff, HTTP_REQ_END)){
+
+           if(!post_flag) break;
+           post_flag = FALSE;
+
+          }
 
         }
         
+        post_flag = FALSE;
+        first_flag = TRUE;
+
         if(recvbytes == 0 || recvbytes == -1) {
           DEBUGSN("Closing Child PID:", getpid());
           if (recvbytes == -1) DEBUGS("Socket timing out");
