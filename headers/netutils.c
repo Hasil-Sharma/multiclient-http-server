@@ -187,7 +187,7 @@ void fill_get_res_struct(req_struct *rq, res_struct *rs, config_struct *conf){
     // TODO: Test it works fine
     
     if(fp){
-      rs->content_length = fill_res_body(fp, &(rs->body)); 
+      rs->content_length = fill_res_body(fp, &(rs->body));
       rs->status_line = strdup(HTTP_RES_OK); 
 
       fclose(fp);
@@ -247,33 +247,33 @@ ssize_t res_struct_to_buff(res_struct *rs, u_char * buff){
 
 }
 
-void process_request(char * src_buff, u_char * dest_buff, ssize_t src_buff_len, config_struct *conf, process_req_res_struct *res_method){ 
+void process_request(req_struct * rq, u_char * dest_buff, ssize_t src_buff_len, config_struct *conf, process_req_res_struct *res_method){ 
 
   int i;
   ssize_t dest_buff_size = 0;
   ssize_t dest_content_length = 0;
   char file_name[MAXFILENAMEPATH];
-  req_struct rq;
   res_struct rs;
   
-  memset(&rq, 0, sizeof(rq));
   memset(&rs, 0, sizeof(rs));
 
-  get_req_struct(&rq, src_buff, src_buff_len);
-  if (strncmp(rq.method, GET_HEADER, GET_HEADER_LEN) == 0){
+  if (strncmp(rq->method, GET_HEADER, GET_HEADER_LEN) == 0){
 
-    if(check_rq_valid(&rq, &rs, conf)) fill_get_res_struct(&rq, &rs, conf);
+    fill_get_res_struct(rq, &rs, conf);
+
+  } else if (strncmp(rq->method, POST_HEADER, POST_HEADER_LEN) == 0){
+
+    //fill_post_res_struct(&rq, &rs, conf);
 
   } else { 
    // Requested method is not implemented
-   fill_error_res_struct(&rq, &rs, conf, HTTP_NOT_IMPLEMENTED_METHOD_FLAG); 
+    fill_error_res_struct(rq, &rs, conf, HTTP_NOT_IMPLEMENTED_METHOD_FLAG); 
   }
   
   debug_res_struct(&rs);
   dest_buff_size = res_struct_to_buff(&rs, dest_buff);
 	
 	free_res_struct(&rs);
-	free_req_struct(&rq);
   res_method->resbytes = dest_buff_size;
   // FALSE if rs->connection is connection close
   // TODO: handle the case where connection: value is something else 
@@ -282,20 +282,13 @@ void process_request(char * src_buff, u_char * dest_buff, ssize_t src_buff_len, 
 
 
 int check_rq_valid(req_struct *rq, res_struct *rs, config_struct *conf){
- if(strncmp(rq->method, GET_HEADER, GET_HEADER_LEN) == 0){
-  // The request is of type GET
-  if(strlen(rq->method) != GET_HEADER_LEN){
-    fill_error_res_struct(rq, rs, conf, HTTP_BAD_REQ_INVALID_METHOD_FLAG);
-    return 0;
-  }
- } 
  return 1;
 }
+
 void get_req_struct(req_struct *rq, char *buff, ssize_t buff_len){
 
   char *temp_char, *temp_str, *temp_buff;
   ssize_t temp_buff_len, temp_len;
-  int i, index;
   int flag = TRUE, conn_flag = FALSE;
 
   temp_buff = (char *) malloc((buff_len + 1)*sizeof(char));
@@ -304,58 +297,43 @@ void get_req_struct(req_struct *rq, char *buff, ssize_t buff_len){
   memcpy(temp_buff, buff, buff_len);
   temp_buff_len = buff_len;
   
-  index = 0;
-  while((temp_char = strstr(temp_buff + index, HTTP_REQ_DELIM))){
-    
-    // Length of single line
-    temp_len = temp_char - temp_buff - index;
+  temp_char = strstr(temp_buff, HTTP_REQ_DELIM);
+  temp_len = temp_char - temp_buff ;
+  temp_str = strndup(temp_buff, temp_len);
 
-    if (temp_len == 0) break;
+  
+  // Assuming that the first line is of type METHOD URI HTTP_VERSION
+  if (strncmp(temp_str, GET_HEADER, GET_HEADER_LEN) == 0 || strncmp(temp_str, POST_HEADER, POST_HEADER_LEN) == 0) {
+    fill_req_struct(temp_str, rq, REQ_HEADER);
+  } else if (strncmp(temp_str, HTTP_REQ_CONNECTION_PARAM, HTTP_REQ_CONNECTION_PARAM_LEN) == 0) {
+    fill_req_struct(temp_str, rq, HTTP_REQ_CONNECTION_PARAM);
+  } else if (strncmp(temp_str, HTTP_REQ_CONTENT_LEN_PARAM, HTTP_REQ_CONTENT_LEN_PARAM_LEN) == 0){
+    fill_req_struct(temp_str, rq, HTTP_REQ_CONTENT_LEN_PARAM);
+  } 
 
-    temp_str = strndup(temp_buff + index, temp_len);
-    // Skip the entire string which whas just processed
-    index += temp_len;
-    // Skip the HTTP_REQ_DELIM
-    index += HTTP_REQ_DELIM_LEN;
-
-    //DEBUGSS("Part of Request", temp_str);
-    
-    // Assuming that the first line is of type METHOD URI HTTP_VERSION
-    if (flag == TRUE) {
-      flag = FALSE;
-      fill_req_struct(temp_str, rq);
-    }
-
-    // If the string about Connection
-    if (strncmp(temp_str, HTTP_REQ_CONNECTION_PARAM, HTTP_REQ_CONNECTION_PARAM_LEN) == 0) {
-        fill_req_struct(temp_str, rq);
-        conn_flag = TRUE;
-    }
-    free(temp_str);
-
-    // rest of the things are ignored
-  }
+  free(temp_str);
 
   free(temp_buff);
-
-  if(!conn_flag){
-  // Case when request headers didn't have request paramters
-    rq->connection = strdup(HTTP_REQ_CONNECTION_CLOSE);
-  }
-  debug_req_struct(rq);
 }
 
-void fill_req_struct(char *str, req_struct *rq){
+void fill_req_struct(char *str, req_struct *rq, char *flag){
   char *temp1, *temp2;
   ssize_t str_len;
   
-  if (strncmp(str, HTTP_REQ_CONNECTION_PARAM, HTTP_REQ_CONNECTION_PARAM_LEN) == 0){
+  DEBUGSS("Part of Request Filled", str);
+  if (strcmp(flag, HTTP_REQ_CONNECTION_PARAM) == 0){
     
     temp1 = strchr(str, ' ');
     temp2 = strdup(temp1 + 1); 
     rq->connection = temp2;
 
-  } else { 
+  } else if (strcmp(flag, HTTP_REQ_CONTENT_LEN_PARAM) == 0){
+
+    temp1 = strchr(str, ' ');
+    temp2 = strdup(temp1 + 1);
+    rq->content_length = atoi(temp2); 
+
+  } else if (strcmp(flag, REQ_HEADER) == 0) { 
 
     temp1 = strchr(str, ' '); // pointer of first space
     str_len = temp1 - str;
@@ -369,6 +347,8 @@ void fill_req_struct(char *str, req_struct *rq){
 
     rq->http_version = strdup(temp2 + 1);
 
+  } else if (strcmp(flag, HTTP_REQ_CONTENT) == 0){
+    rq->content = strdup(str);
   }
 }
 
@@ -411,6 +391,8 @@ void debug_req_struct(req_struct * rq){
   DEBUGSS("\tURI", rq->uri);
   DEBUGSS("\tHTTP Version", rq->http_version);
   DEBUGSS("\tKeep Connection Alive", rq->connection);
+  DEBUGSN("\tContent Lenght", rq->content_length);
+  DEBUGSS("\tContent", rq->content);
 
 }
 

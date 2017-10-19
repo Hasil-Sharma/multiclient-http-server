@@ -11,17 +11,23 @@
 #define MAXFILENAMEPATH 1024
 #define MAX_TEMPLATES 20
 
+#define REQ_HEADER "REQ_"
 #define POST_HEADER "POST"
 #define POST_HEADER_LEN strlen(POST_HEADER)
 #define GET_HEADER "GET"
 #define GET_HEADER_LEN strlen(GET_HEADER)
 #define GET_URI_ROOT "/"
 
+#define HTTP_REQ_CONTENT_LEN_PARAM "Content-Length: "
+#define HTTP_REQ_CONTENT_LEN_PARAM_LEN strlen(HTTP_REQ_CONTENT_LEN_PARAM)
+
 #define HTTP_REQ_CONNECTION_PARAM "Connection: "
 #define HTTP_REQ_CONNECTION_PARAM_LEN strlen(HTTP_REQ_CONNECTION_PARAM)
 
 #define HTTP_REQ_CONNECTION_KEEP_ALIVE "Keep-alive"
 #define HTTP_REQ_CONNECTION_KEEP_ALIVE_LEN strlen(HTTP_REQ_CONNECTION_KEEP_ALIVE)
+
+#define HTTP_REQ_CONTENT "Content"
 
 #define HTTP_REQ_END "\r\n\r\n"
 #define HTTP_REQ_END_LEN strlen(HTTP_REQ_END)
@@ -86,6 +92,8 @@ struct req_struct{
   char *uri;
   char *connection;
   char *http_version;
+  char *content;
+  int content_length;
 
 };
 
@@ -111,7 +119,7 @@ struct process_req_res_struct {
 typedef struct process_req_res_struct process_req_res_struct;
 int get_socket(config_struct *);
 
-void process_request(char *, u_char *, ssize_t, config_struct *, process_req_res_struct*);
+void process_request(req_struct *, u_char *, ssize_t, config_struct *, process_req_res_struct*);
 void send_response(int, char *, ssize_t);
 void get_req_struct(req_struct *, char *, ssize_t);
 
@@ -119,9 +127,11 @@ ssize_t update_buff(char *, char *, ssize_t);
 ssize_t update_buff_with_delim(char *, char *, ssize_t);
 ssize_t update_buff_as_delim(char *);
 
-void fill_req_struct(char *, req_struct *);
+void fill_req_struct(char *, req_struct *, char *);
 void fill_error_res_struct(req_struct *, res_struct *, config_struct *, char *);
 void fill_get_res_struct(req_struct *, res_struct *, config_struct *);
+void fill_post_res_struct(req_struct *, res_struct *, config_struct *);
+
 size_t fill_res_body(FILE *, u_char **);
 
 int check_rq_valid(req_struct *, res_struct *, config_struct *);
