@@ -405,8 +405,10 @@ void debug_req_struct(req_struct * rq){
   DEBUGSS("\tURI", rq->uri);
   DEBUGSS("\tHTTP Version", rq->http_version);
   DEBUGSS("\tKeep Connection Alive", rq->connection);
-  DEBUGSN("\tContent Lenght", rq->content_length);
-  DEBUGSS("\tContent", rq->content);
+
+  if(strcmp(rq->method, POST_HEADER) == 0)
+    DEBUGSN("\tContent Length", rq->content_length);
+  //DEBUGSS("\tContent", rq->content);
 
 }
 
@@ -417,7 +419,7 @@ void debug_res_struct(res_struct* res){
   DEBUGSS("\tSTATUS LINE", res->status_line);
   DEBUGSN("\tCONTENT-LENGTH", res->content_length);
   DEBUGSS("\tCONTENT-TYPE", res->content_type);
-  DEBUGSS("\tBODY", res->body);
+  //DEBUGSS("\tBODY", res->body);
 
 }
 
