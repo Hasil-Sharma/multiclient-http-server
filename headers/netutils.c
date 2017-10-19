@@ -198,12 +198,26 @@ void fill_get_res_struct(req_struct *rq, res_struct *rs, config_struct *conf){
     free(file_name);
 
   } else {
-    // Case when unsupported file type is requested
-
     fill_error_res_struct(rq, rs, conf, HTTP_NOT_IMPLEMENTED_FILE_TYPE_FLAG);
-    /*fprintf(stderr, "Unsupported file type Not Implemented %s: %s", extension, strerror(errno));*/
-    /*exit(1);*/
   }
+}
+
+void fill_post_res_struct(req_struct *rq, res_struct *rs, config_struct *conf){
+  char *temp;
+  int index, extra_memory;
+  fill_get_res_struct(rq, rs, conf);
+
+  // Writing the </body> makes this formatting agnostic, no matter the file formatting
+  // this will work
+
+  temp = strstr(rs->body, HTTP_BODY_END);
+  memset(temp, 0, sizeof(u_char));
+  rs->content_length -= rs->content_length - (temp - (char *)rs->body) ;
+
+  extra_memory = rq->content_length + HTTP_POST_DATA_HEADING_LEN + HTTP_PRE_START_END_TAG_LEN + HTTP_END_LEN;
+  
+  rs->body = (u_char *) realloc(rs->body, rs->content_length + extra_memory);
+  rs->content_length += sprintf(rs->body + rs->content_length, "%s%s%s%s%s", HTTP_POST_DATA_HEADING, HTTP_PRE_START_TAG, rq->content, HTTP_PRE_END_TAG, HTTP_END);
 }
 
 size_t fill_res_body(FILE * fp, u_char ** buff){
@@ -263,7 +277,7 @@ void process_request(req_struct * rq, u_char * dest_buff, ssize_t src_buff_len, 
 
   } else if (strncmp(rq->method, POST_HEADER, POST_HEADER_LEN) == 0){
 
-    //fill_post_res_struct(&rq, &rs, conf);
+    fill_post_res_struct(rq, &rs, conf);
 
   } else { 
    // Requested method is not implemented

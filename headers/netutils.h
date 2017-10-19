@@ -52,6 +52,17 @@
 
 #define HTTP_GENERIC_TEMPLATE "<html><body>%s</body></html>"
 
+#define HTTP_BODY_END "</body>"
+#define HTTP_END "</body></html>"
+#define HTTP_END_LEN strlen(HTTP_END)
+
+#define HTTP_POST_DATA_HEADING "<h1> POST DATA </h1>"
+#define HTTP_POST_DATA_HEADING_LEN strlen(HTTP_POST_DATA_HEADING)
+
+#define HTTP_PRE_START_TAG "<pre>"
+#define HTTP_PRE_END_TAG "</pre>"
+#define HTTP_PRE_START_END_TAG_LEN strlen(HTTP_PRE_START_TAG) + strlen(HTTP_PRE_END_TAG)
+
 #define HTTP_RES_OK "HTTP/1.1 200 OK" 
 #define HTTP_RES_OK_LEN strlen(HTTP_RES_OK)
 #define HTTP_REQ_CONNECTION_CLOSE "Close"
