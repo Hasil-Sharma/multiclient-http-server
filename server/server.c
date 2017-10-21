@@ -15,14 +15,17 @@
 static volatile int keepRunning = TRUE;
 static volatile int listen_fd;
 
-void waitForChildren(int con){
+void waitForChildren(int con)
+{
 
   keepRunning = FALSE;
   printf("Shutting down receive operation\n");
 
   shutdown(listen_fd, SHUT_RD);
 }
-int main () {
+
+int main ()
+{
 
   struct timeval tv;
   int conn_fd, post_flag, first_flag, expect_data, read_bytes;
@@ -52,9 +55,10 @@ int main () {
       accept (listen_fd, (struct sockaddr *) &remote_address, &addr_size);
 
 
-    if(keepRunning == FALSE) continue;
+    if (keepRunning == FALSE) continue;
 
-    if(conn_fd == -1) {
+    if (conn_fd == -1)
+    {
       perror("Cannot Accept Connection");
     }
 
@@ -132,7 +136,7 @@ int main () {
         }
 
         // Avoiding Segmentation Fault
-        if(rq.connection == NULL) rq.connection = strdup(HTTP_REQ_CONNECTION_CLOSE);
+        if (rq.connection == NULL) rq.connection = strdup(HTTP_REQ_CONNECTION_CLOSE);
 
         debug_req_struct (&rq);
 
@@ -172,4 +176,3 @@ int main () {
   return 0;
 
 }
-

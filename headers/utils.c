@@ -5,8 +5,7 @@
 #include "debug.h"
 
 
-  void
-checkforerror (int val, char *error_msg)
+void checkforerror (int val, char *error_msg)
 {
   if (val < 0)
   {
@@ -15,8 +14,7 @@ checkforerror (int val, char *error_msg)
   }
 }
 
-  void
-read_conf (config_struct * conf, char *file_name)
+void read_conf (config_struct * conf, char *file_name)
 {
 
   FILE *fp;
@@ -41,35 +39,23 @@ read_conf (config_struct * conf, char *file_name)
     memset (buff, 0, sizeof (buff));
     get_second_string (&temp_char_ptr, line, ' ');
     strcpy (buff, temp_char_ptr);
-    if (strncmp (line, LISTEN_PORT_CONF, LISTEN_PORT_CONF_LEN) == 0)
-    {
-      conf->port_number = (u_short) strtoul (buff, NULL, 10);
-    }
-    else if (strncmp (line, DOCUMENT_ROOT_CONF, DOCUMENT_ROOT_CONF_LEN) ==
-        0)
+    if (strncmp (line, LISTEN_PORT_CONF, LISTEN_PORT_CONF_LEN) == 0) conf->port_number = (u_short) strtoul (buff, NULL, 10);
+    else if (strncmp (line, DOCUMENT_ROOT_CONF, DOCUMENT_ROOT_CONF_LEN) == 0)
     {
       conf->doc_root = strdup (buff);
       remove_first_last_char (&conf->doc_root);
     }
-    else if (strncmp (line, DIRECTORY_INDEX, DIRECTORY_INDEX_LEN) == 0)
-    {
-      conf->doc_index = strdup (buff);
-    }
-    else if (strncmp (line, KEEP_ALIVE_TIME_CONF, KEEP_ALIVE_TIME_CONF_LEN)
-        == 0)
+    else if (strncmp (line, DIRECTORY_INDEX, DIRECTORY_INDEX_LEN) == 0) conf->doc_index = strdup (buff);
+    else if (strncmp (line, KEEP_ALIVE_TIME_CONF, KEEP_ALIVE_TIME_CONF_LEN) == 0)
     {
       conf->keep_alive_time = atoi (buff);
     }
-    else if (strncmp (line, CONTENT_TYPE_START, CONTENT_TYPE_START_LEN) ==
-        0)
+    else if (strncmp (line, CONTENT_TYPE_START, CONTENT_TYPE_START_LEN) == 0)
     {
       content_index = conf->content_type_index;
-      conf->content_type[content_index] =
-        (content_type_struct *) malloc (sizeof (content_type_struct));
-      get_first_string (&conf->content_type[content_index]->extension,
-          line, ' ');
-      get_second_string (&conf->content_type[content_index]->type, line,
-          ' ');
+      conf->content_type[content_index] = (content_type_struct *) malloc (sizeof (content_type_struct));
+      get_first_string (&conf->content_type[content_index]->extension, line, ' ');
+      get_second_string (&conf->content_type[content_index]->type, line, ' ');
       conf->content_type_index++;
     }
   }
@@ -78,8 +64,7 @@ read_conf (config_struct * conf, char *file_name)
 }
 
 
-  void
-remove_first_last_char (char **str)
+void remove_first_last_char (char **str)
 {
   int len = strlen (*str);
 
@@ -89,13 +74,13 @@ remove_first_last_char (char **str)
   (*str)[len - 1] = '\0';
 
   /*DEBUGS(*str); */
+
   // Remove the fist character
   (*str) = (*str) + 1;
 
 }
 
-  void
-get_second_string (char **dest, char *src, char delim)
+void get_second_string (char **dest, char *src, char delim)
 {
 
   char *delim_char = strchr (src, delim);
@@ -103,8 +88,7 @@ get_second_string (char **dest, char *src, char delim)
 
 }
 
-  void
-get_first_string (char **dest, char *src, char delim)
+void get_first_string (char **dest, char *src, char delim)
 {
 
   char *delim_char = strchr (src, delim);
@@ -113,8 +97,7 @@ get_first_string (char **dest, char *src, char delim)
 
 }
 
-  void
-get_extension (char **dest, char *src)
+void get_extension (char **dest, char *src)
 {
 
   char *delim_char = strrchr (src, '.');
@@ -122,9 +105,7 @@ get_extension (char **dest, char *src)
   // dest will have the "." in the starting
 }
 
-  ssize_t
-fill_buff_with_templates (char *buff, const char **templates,
-    int template_len)
+ssize_t fill_buff_with_templates (char *buff, const char **templates, int template_len)
 {
   ssize_t buff_len;
   char *temp;
@@ -140,8 +121,7 @@ fill_buff_with_templates (char *buff, const char **templates,
   return buff_len;
 }
 
-  void
-print_config_struct (config_struct * conf)
+void print_config_struct (config_struct * conf)
 {
 
   int i;

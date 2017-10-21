@@ -12,8 +12,7 @@
 #include "netutils.h"
 #include "debug.h"
 
-  int
-get_socket (config_struct * conf)
+int get_socket (config_struct * conf)
 {
 
   int sockfd;
@@ -27,21 +26,23 @@ get_socket (config_struct * conf)
   sin.sin_port = htons (conf->port_number);
   sin.sin_addr.s_addr = INADDR_ANY;
 
-  checkforerror (sockfd =
-      socket (AF_INET, SOCK_STREAM, 0), "Unable to create socket");
+  checkforerror (sockfd = socket (AF_INET, SOCK_STREAM, 0), "Unable to create socket");
 
   // Avoiding the "Address Already in use" error message
-  if (setsockopt (sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof (yes)) < 0) {
+  if (setsockopt (sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof (yes)) < 0)
+  {
     perror ("Unable to set so_reuseaddr:");
     exit (1);
   }
 
-  if (bind (sockfd, (struct sockaddr *) &sin, sizeof (sin)) < 0) {
+  if (bind (sockfd, (struct sockaddr *) &sin, sizeof (sin)) < 0)
+  {
     perror ("Unable to bind the socket:");
     exit (1);
   }
 
-  if (listen (sockfd, MAXCONNECTION) < 0) {
+  if (listen (sockfd, MAXCONNECTION) < 0)
+  {
     perror ("Unable to call listen on socket:");
     exit (1);
   }
@@ -56,8 +57,7 @@ get_socket (config_struct * conf)
 }
 
 
-  ssize_t
-update_buff (char *buff, char *content, ssize_t content_length)
+ssize_t update_buff (char *buff, char *content, ssize_t content_length)
 {
 
   memcpy (buff, content, content_length);
@@ -66,16 +66,14 @@ update_buff (char *buff, char *content, ssize_t content_length)
 }
 
 
-  ssize_t
-update_buff_as_delim (char *buff)
+ssize_t update_buff_as_delim (char *buff)
 {
 
   return update_buff (buff, HTTP_RES_DELIM, HTTP_RES_DELIM_LEN);
 
 }
 
-  ssize_t
-update_buff_with_delim (char *buff, char *content, ssize_t content_length)
+ssize_t update_buff_with_delim (char *buff, char *content, ssize_t content_length)
 {
 
   content_length = update_buff (buff, content, content_length);
@@ -84,8 +82,7 @@ update_buff_with_delim (char *buff, char *content, ssize_t content_length)
 
 }
 
-  int
-check_extension_type (char *extension, char **type, config_struct * conf)
+int check_extension_type (char *extension, char **type, config_struct * conf)
 {
 
   int i;
@@ -107,7 +104,8 @@ check_extension_type (char *extension, char **type, config_struct * conf)
   return flag;
 }
 
-void fill_error_res_struct (req_struct * rq, res_struct * rs, config_struct * conf, char *flag) {
+void fill_error_res_struct (req_struct * rq, res_struct * rs, config_struct * conf, char *flag)
+{
 
   char data[MAXREQRESBUFFER];
   ssize_t data_length, template_size;
@@ -115,33 +113,52 @@ void fill_error_res_struct (req_struct * rq, res_struct * rs, config_struct * co
   const char *template_array[MAX_TEMPLATES];
 
   template_array[0] = HTTP_GENERIC_TEMPLATE;
-  if (strncmp (flag, HTTP_BAD_REQ_FLAG, HTTP_BAD_REQ_FLAG_LEN) == 0) {
+  if (strncmp (flag, HTTP_BAD_REQ_FLAG, HTTP_BAD_REQ_FLAG_LEN) == 0)
+  {
 
     template_array[1] = HTTP_RES_BAD_REQ_TEMPLATE;
     rs->status_line = strdup (HTTP_RES_BAD_REQ);
     rs->content_type = strdup (HTTP_RES_BAD_REQ_TYPE);
 
-    if (strcmp (flag, HTTP_BAD_REQ_INVALID_METHOD_FLAG) == 0) {
+    if (strcmp (flag, HTTP_BAD_REQ_INVALID_METHOD_FLAG) == 0)
+    {
 
       template_array[2] = HTTP_RES_BAD_REQ_INVALID_METHOD_TEMPLATE;
       template_array[3] = rq->method;
       template_size = 4;
 
-    } else if (strcmp (flag, HTTP_BAD_REQ_INVALID_URI_FLAG) == 0) {
+    }
+    else if (strcmp (flag, HTTP_BAD_REQ_INVALID_URI_FLAG) == 0)
+    {
 
       template_array[2] = HTTP_RES_BAD_REQ_INVALID_URI_TEMPLATE;
       template_array[3] = rq->uri;
       template_size = 4;
 
-    } else if (strcmp (flag, HTTP_BAD_REQ_INVALID_TYPE_FLAG) == 0) {
+    }
+    else if (strcmp (flag, HTTP_BAD_REQ_INVALID_TYPE_FLAG) == 0)
+    {
 
       template_array[2] = HTTP_RES_BAD_REQ_INVALID_FILE_TYPE_TEMPLATE;
       template_array[3] = rq->uri;
       template_size = 4;
 
     }
+    else if (strcmp (flag, HTTP_BAD_REQ_INVALID_HTTP_FLAG) == 0)
+    {
+      template_array[2] = HTTP_RES_BAD_REQ_INVALID_HTTP_TEMPLATE;
+      template_array[3] = rq->http_version;
+      template_size = 4;
+    }
+    else
+    {
+      fprintf (stderr, "Unknown Flag : %s", flag);
+      exit (1);
+    }
 
-  } else if (strcmp (flag, HTTP_RES_404_FLAG) == 0) {
+  }
+  else if (strcmp (flag, HTTP_RES_404_FLAG) == 0)
+  {
 
     rs->status_line = strdup (HTTP_RES_404);
     rs->content_type = strdup (HTTP_RES_404_TYPE);
@@ -150,25 +167,32 @@ void fill_error_res_struct (req_struct * rq, res_struct * rs, config_struct * co
     template_array[2] = rq->uri;
     template_size = 3;
 
-  } else if (strncmp (flag, HTTP_NOT_IMPLEMENTED_FLAG, HTTP_NOT_IMPLEMENTED_FLAG_LEN) == 0) {
+  }
+  else if (strncmp (flag, HTTP_NOT_IMPLEMENTED_FLAG, HTTP_NOT_IMPLEMENTED_FLAG_LEN) == 0)
+  {
 
     rs->status_line = strdup (HTTP_RES_NOT_IMPLEMENTED);
     rs->content_type = strdup (HTTP_RES_NOT_IMPLEMENTED_TYPE);
     template_array[1] = HTTP_RES_NOT_IMPLEMENTED_TEMPLATE;
 
-    if (strcmp (flag, HTTP_NOT_IMPLEMENTED_METHOD_FLAG) == 0) {
+    if (strcmp (flag, HTTP_NOT_IMPLEMENTED_METHOD_FLAG) == 0)
+    {
 
       template_array[2] = HTTP_RES_NOT_IMPLEMENTED_METHOD_TEMPLATE;
       template_array[3] = rq->method;
       template_size = 4;
 
-    } else if (strcmp (flag, HTTP_NOT_IMPLEMENTED_FILE_TYPE_FLAG) == 0) {
+    }
+    else if (strcmp (flag, HTTP_NOT_IMPLEMENTED_FILE_TYPE_FLAG) == 0)
+    {
       template_array[2] = HTTP_RES_NOT_IMPLEMENTED_FILE_TYPE_TEMPLATE;
       template_array[3] = rq->uri;
       template_size = 4;
     }
 
-  } else {
+  }
+  else
+  {
 
     fprintf (stderr, "Unknown Flag : %s", flag);
     exit (1);
@@ -181,55 +205,67 @@ void fill_error_res_struct (req_struct * rq, res_struct * rs, config_struct * co
   memcpy (rs->body, data, data_length);
 }
 
+int check_http_version(req_struct *rq)
+{
 
-void fill_get_res_struct (req_struct * rq, res_struct * rs, config_struct * conf) {
+  if (strcmp(rq->http_version, HTTP_1_1) == 0 || strcmp(rq->http_version, HTTP_1_0) == 0) return 0;
+  else return 1;
+}
+
+void fill_get_res_struct (req_struct * rq, res_struct * rs, config_struct * conf)
+{
 
   char *file_name, *extension, *type;
   char file_path[MAXFILENAMEPATH];
+  int flag = 0;
   FILE *fp;
 
-  if (strcmp (rq->uri, GET_URI_ROOT) == 0)
-    file_name = strdup (conf->doc_index);
-  else
-    file_name = strdup (rq->uri + 1); // +1 to skip the initial / and making it consistent with doc_index
-
-  get_extension (&extension, file_name);
-
-  if (check_extension_type (extension, &type, conf))
+  if (strcmp (rq->uri, GET_URI_ROOT) == 0) file_name = strdup (conf->doc_index);
+  else file_name = strdup (rq->uri + 1); // +1 to skip the initial / and making it consistent with doc_index
+  flag = check_http_version(rq);
+  if (flag)
   {
-
-    rs->content_type = strdup (type);
-
-    if (sprintf (file_path, "%s/%s", conf->doc_root, file_name) < 0)
-    {
-      perror ("Error in making file path string:");
-      exit (1);
-    }
-
-    if (!(fp = fopen (file_path, "rb")))
-    {
-      // Case when request file doesn't exist
-      fill_error_res_struct (rq, rs, conf, HTTP_RES_404_FLAG);
-    }
-
-    // TODO: Test it works fine
-
-    if (fp)
-    {
-      rs->content_length = fill_res_body (fp, &(rs->body));
-      rs->status_line = strdup (HTTP_RES_OK);
-
-      fclose (fp);
-    }
-
-    free (extension);
-    free (file_name);
-
+    fill_error_res_struct(rq, rs, conf, HTTP_BAD_REQ_INVALID_HTTP_FLAG);
   }
-  else fill_error_res_struct (rq, rs, conf, HTTP_NOT_IMPLEMENTED_FILE_TYPE_FLAG);
+  else
+  {
+    get_extension (&extension, file_name);
+    if (check_extension_type (extension, &type, conf))
+    {
+
+      rs->content_type = strdup (type);
+
+      if (sprintf (file_path, "%s/%s", conf->doc_root, file_name) < 0)
+      {
+        perror ("Error in making file path string:");
+        exit (1);
+      }
+
+      if (!(fp = fopen (file_path, "rb")))
+      {
+        // Case when request file doesn't exist
+        fill_error_res_struct (rq, rs, conf, HTTP_RES_404_FLAG);
+      }
+
+      // TODO: Test it works fine
+
+      if (fp)
+      {
+        rs->content_length = fill_res_body (fp, &(rs->body));
+        rs->status_line = strdup (HTTP_RES_OK);
+        fclose (fp);
+      }
+
+      free (extension);
+      free (file_name);
+
+    }
+    else fill_error_res_struct (rq, rs, conf, HTTP_NOT_IMPLEMENTED_FILE_TYPE_FLAG);
+  }
 }
 
-void fill_post_res_struct (req_struct * rq, res_struct * rs, config_struct * conf) {
+void fill_post_res_struct (req_struct * rq, res_struct * rs, config_struct * conf)
+{
   char *temp;
   int index, extra_memory;
 
@@ -249,11 +285,12 @@ void fill_post_res_struct (req_struct * rq, res_struct * rs, config_struct * con
   rs->body = (u_char *) realloc (rs->body, rs->content_length + extra_memory);
   rs->content_length +=
     sprintf (rs->body + rs->content_length, "%s%s%s%s%s",
-        HTTP_POST_DATA_HEADING, HTTP_PRE_START_TAG, rq->content,
-        HTTP_PRE_END_TAG, HTTP_END);
+             HTTP_POST_DATA_HEADING, HTTP_PRE_START_TAG, rq->content,
+             HTTP_PRE_END_TAG, HTTP_END);
 }
 
-size_t fill_res_body (FILE * fp, u_char ** buff) {
+size_t fill_res_body (FILE * fp, u_char ** buff)
+{
 
   size_t buff_size;
   fseek (fp, 0L, SEEK_END);
@@ -277,22 +314,21 @@ size_t fill_res_body (FILE * fp, u_char ** buff) {
   return buff_size;
 }
 
-  ssize_t
-res_struct_to_buff (res_struct * rs, u_char * buff)
+ssize_t res_struct_to_buff (res_struct * rs, u_char * buff)
 {
   ssize_t print_size;
   print_size = sprintf (buff,
-      "%s%s"
-      "%s%s%s"
-      "%s%d%s"
-      "%s%s%s"
-      "%s",
-      rs->status_line, HTTP_RES_DELIM,
-      HTTP_RES_CONTENT_TYPE, rs->content_type,
-      HTTP_RES_DELIM, HTTP_RES_CONTENT_LENGTH,
-      rs->content_length, HTTP_RES_DELIM,
-      HTTP_RES_CONNECTION, rs->connection, HTTP_RES_DELIM,
-      HTTP_RES_DELIM);
+                        "%s%s"
+                        "%s%s%s"
+                        "%s%d%s"
+                        "%s%s%s"
+                        "%s",
+                        rs->status_line, HTTP_RES_DELIM,
+                        HTTP_RES_CONTENT_TYPE, rs->content_type,
+                        HTTP_RES_DELIM, HTTP_RES_CONTENT_LENGTH,
+                        rs->content_length, HTTP_RES_DELIM,
+                        HTTP_RES_CONNECTION, rs->connection, HTTP_RES_DELIM,
+                        HTTP_RES_DELIM);
 
   memcpy (buff + print_size, rs->body, rs->content_length);
   return print_size + rs->content_length;
@@ -300,25 +336,28 @@ res_struct_to_buff (res_struct * rs, u_char * buff)
 }
 
 
-void process_request (req_struct * rq, u_char * dest_buff, ssize_t src_buff_len, config_struct * conf, process_req_res_struct * res_method) {
+void process_request (req_struct * rq, u_char * dest_buff, ssize_t src_buff_len, config_struct * conf, process_req_res_struct * res_method)
+{
 
   int i;
-  ssize_t dest_buff_size = 0;
-  ssize_t dest_content_length = 0;
+  ssize_t dest_buff_size = 0,  dest_content_length = 0;
   char file_name[MAXFILENAMEPATH];
   res_struct rs;
 
   memset (&rs, 0, sizeof (rs));
   memset(dest_buff, 0, sizeof(dest_buff));
   // Case when no method is supplied by rest are send
-  if (rq->method != NULL){
+  if (rq->method != NULL)
+  {
     DEBUGSS("Method", rq->method);
     DEBUGSS(GET_HEADER, POST_HEADER);
     if (strcmp (rq->method, GET_HEADER) == 0) fill_get_res_struct (rq, &rs, conf);
     else if (strcmp (rq->method, POST_HEADER) == 0) fill_post_res_struct (rq, &rs, conf);
-    else fill_error_res_struct(rq, &rs, conf, HTTP_NOT_IMPLEMENTED_METHOD_FLAG);
+    else fill_error_res_struct(rq, &rs, conf, HTTP_NOT_IMPLEMENTED_METHOD_FLAG); // Case when Request Method is neither GET or POST
 
-  } else {
+  }
+  else
+  {
     // Requested method is not implemented
     fill_error_res_struct (rq, &rs, conf, HTTP_NOT_IMPLEMENTED_METHOD_FLAG);
   }
@@ -336,13 +375,8 @@ void process_request (req_struct * rq, u_char * dest_buff, ssize_t src_buff_len,
 }
 
 
-  int
-check_rq_valid (req_struct * rq, res_struct * rs, config_struct * conf)
+void get_req_struct (req_struct * rq, char *buff, ssize_t buff_len)
 {
-  return 1;
-}
-
-void get_req_struct (req_struct * rq, char *buff, ssize_t buff_len) {
 
   char *temp_char, *temp_str, *temp_buff;
   ssize_t temp_buff_len, temp_len;
@@ -370,8 +404,7 @@ void get_req_struct (req_struct * rq, char *buff, ssize_t buff_len) {
   free (temp_buff);
 }
 
-  void
-fill_req_struct (char *str, req_struct * rq, char *flag)
+void fill_req_struct (char *str, req_struct * rq, char *flag)
 {
   char *temp1, *temp2;
   ssize_t str_len;
@@ -415,8 +448,7 @@ fill_req_struct (char *str, req_struct * rq, char *flag)
   }
 }
 
-  void
-send_response (int socket, char *buff, ssize_t buff_len)
+void send_response (int socket, char *buff, ssize_t buff_len)
 {
   ssize_t resbytes;
   resbytes = send (socket, buff, buff_len, 0);
@@ -428,8 +460,7 @@ send_response (int socket, char *buff, ssize_t buff_len)
 
 }
 
-  int
-checkifget (char *buff)
+int checkifget (char *buff)
 {
   if (strncmp (buff, GET_HEADER, GET_HEADER_LEN) == 0)
     return TRUE;
@@ -438,16 +469,14 @@ checkifget (char *buff)
 
 
 
-  void
-free_res_struct (res_struct * rs)
+void free_res_struct (res_struct * rs)
 {
   free (rs->status_line);
   free (rs->content_type);
   free (rs->body);
 }
 
-  void
-free_req_struct (req_struct * rq)
+void free_req_struct (req_struct * rq)
 {
   free (rq->method);
   free (rq->uri);
@@ -455,8 +484,7 @@ free_req_struct (req_struct * rq)
   free (rq->http_version);
 }
 
-  void
-debug_req_struct (req_struct * rq)
+void debug_req_struct (req_struct * rq)
 {
 
   DEBUGSN ("Child PID:", getpid ());
@@ -473,8 +501,7 @@ debug_req_struct (req_struct * rq)
 
 }
 
-  void
-debug_res_struct (res_struct * res)
+void debug_res_struct (res_struct * res)
 {
 
   DEBUGSN ("Child PID:", getpid ());
