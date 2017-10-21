@@ -100,7 +100,7 @@ int main () {
           if (expect_data == 1 && rq.method != NULL)
             if (strcmp (rq.method, POST_HEADER) == 0)
               read_bytes = rq.content_length;
-            else if (strcmp (rq.method, GET_HEADER) == 0)
+            else // In case of any other command break helps in handling the GET case
               break;
 
           recvbytes = recv (conn_fd, req_buff + nbytes, read_bytes, 0);
@@ -132,7 +132,7 @@ int main () {
         }
 
         // Avoiding Segmentation Fault
-        if(recvbytes > 0 && rq.connection == NULL) rq.connection = strdup(HTTP_REQ_CONNECTION_CLOSE);
+        if(rq.connection == NULL) rq.connection = strdup(HTTP_REQ_CONNECTION_CLOSE);
 
         debug_req_struct (&rq);
 
@@ -153,6 +153,7 @@ int main () {
         send_response (conn_fd, res_buff, res_method.resbytes);
 
         free_req_struct (&rq);
+        memset(res_buff, 0, sizeof(res_buff));
         if (res_method.conn_alive_flag == FALSE)
         {
           DEBUGS ("Closing Connection: no-keep-alive");

@@ -47,8 +47,8 @@ get_socket (config_struct * conf)
   }
 
   /*if( fcntl(sockfd, F_SETFL, O_NONBLOCK)  < 0){*/
-    /*perror("Unable to set socket as non-blocking:");*/
-    /*exit (1);*/
+  /*perror("Unable to set socket as non-blocking:");*/
+  /*exit (1);*/
   /*}*/
 
   return sockfd;
@@ -107,41 +107,33 @@ check_extension_type (char *extension, char **type, config_struct * conf)
   return flag;
 }
 
-  void
-fill_error_res_struct (req_struct * rq, res_struct * rs, config_struct * conf,
-    char *flag)
-{
+void fill_error_res_struct (req_struct * rq, res_struct * rs, config_struct * conf, char *flag) {
+
   char data[MAXREQRESBUFFER];
   ssize_t data_length, template_size;
   char *temp;
   const char *template_array[MAX_TEMPLATES];
 
   template_array[0] = HTTP_GENERIC_TEMPLATE;
-  if (strncmp (flag, HTTP_BAD_REQ_FLAG, HTTP_BAD_REQ_FLAG_LEN) == 0)
-  {
+  if (strncmp (flag, HTTP_BAD_REQ_FLAG, HTTP_BAD_REQ_FLAG_LEN) == 0) {
 
     template_array[1] = HTTP_RES_BAD_REQ_TEMPLATE;
     rs->status_line = strdup (HTTP_RES_BAD_REQ);
     rs->content_type = strdup (HTTP_RES_BAD_REQ_TYPE);
 
-    if (strcmp (flag, HTTP_BAD_REQ_INVALID_METHOD_FLAG) == 0)
-    {
+    if (strcmp (flag, HTTP_BAD_REQ_INVALID_METHOD_FLAG) == 0) {
 
       template_array[2] = HTTP_RES_BAD_REQ_INVALID_METHOD_TEMPLATE;
       template_array[3] = rq->method;
       template_size = 4;
 
-    }
-    else if (strcmp (flag, HTTP_BAD_REQ_INVALID_URI_FLAG) == 0)
-    {
+    } else if (strcmp (flag, HTTP_BAD_REQ_INVALID_URI_FLAG) == 0) {
 
       template_array[2] = HTTP_RES_BAD_REQ_INVALID_URI_TEMPLATE;
       template_array[3] = rq->uri;
       template_size = 4;
 
-    }
-    else if (strcmp (flag, HTTP_BAD_REQ_INVALID_TYPE_FLAG) == 0)
-    {
+    } else if (strcmp (flag, HTTP_BAD_REQ_INVALID_TYPE_FLAG) == 0) {
 
       template_array[2] = HTTP_RES_BAD_REQ_INVALID_FILE_TYPE_TEMPLATE;
       template_array[3] = rq->uri;
@@ -149,61 +141,48 @@ fill_error_res_struct (req_struct * rq, res_struct * rs, config_struct * conf,
 
     }
 
-  }
-  else if (strcmp (flag, HTTP_RES_404_FLAG) == 0)
-  {
+  } else if (strcmp (flag, HTTP_RES_404_FLAG) == 0) {
 
     rs->status_line = strdup (HTTP_RES_404);
     rs->content_type = strdup (HTTP_RES_404_TYPE);
+
     template_array[1] = HTTP_RES_404_FILE_TEMPLATE;
     template_array[2] = rq->uri;
     template_size = 3;
 
+  } else if (strncmp (flag, HTTP_NOT_IMPLEMENTED_FLAG, HTTP_NOT_IMPLEMENTED_FLAG_LEN) == 0) {
+
+    rs->status_line = strdup (HTTP_RES_NOT_IMPLEMENTED);
+    rs->content_type = strdup (HTTP_RES_NOT_IMPLEMENTED_TYPE);
+    template_array[1] = HTTP_RES_NOT_IMPLEMENTED_TEMPLATE;
+
+    if (strcmp (flag, HTTP_NOT_IMPLEMENTED_METHOD_FLAG) == 0) {
+
+      template_array[2] = HTTP_RES_NOT_IMPLEMENTED_METHOD_TEMPLATE;
+      template_array[3] = rq->method;
+      template_size = 4;
+
+    } else if (strcmp (flag, HTTP_NOT_IMPLEMENTED_FILE_TYPE_FLAG) == 0) {
+      template_array[2] = HTTP_RES_NOT_IMPLEMENTED_FILE_TYPE_TEMPLATE;
+      template_array[3] = rq->uri;
+      template_size = 4;
+    }
+
+  } else {
+
+    fprintf (stderr, "Unknown Flag : %s", flag);
+    exit (1);
+
   }
-  else
-    if (strncmp
-        (flag, HTTP_NOT_IMPLEMENTED_FLAG, HTTP_NOT_IMPLEMENTED_FLAG_LEN) == 0)
-    {
 
-      rs->status_line = strdup (HTTP_RES_NOT_IMPLEMENTED);
-      rs->content_type = strdup (HTTP_RES_NOT_IMPLEMENTED_TYPE);
-      template_array[1] = HTTP_RES_NOT_IMPLEMENTED_TEMPLATE;
-
-      if (strcmp (flag, HTTP_NOT_IMPLEMENTED_METHOD_FLAG) == 0)
-      {
-
-        template_array[2] = HTTP_RES_NOT_IMPLEMENTED_METHOD_TEMPLATE;
-        template_array[3] = rq->method;
-        template_size = 4;
-
-      }
-      else if (strcmp (flag, HTTP_NOT_IMPLEMENTED_FILE_TYPE_FLAG) == 0)
-      {
-        template_array[2] = HTTP_RES_NOT_IMPLEMENTED_FILE_TYPE_TEMPLATE;
-        template_array[3] = rq->uri;
-        template_size = 4;
-      }
-
-    }
-    else
-    {
-
-      fprintf (stderr, "Unknown Flag : %s", flag);
-      exit (1);
-
-    }
-
-  data_length =
-    fill_buff_with_templates (data, template_array, template_size);
+  data_length = fill_buff_with_templates (data, template_array, template_size);
   rs->content_length = data_length;
   rs->body = (u_char *) malloc (data_length * sizeof (u_char));
   memcpy (rs->body, data, data_length);
 }
 
 
-  void
-fill_get_res_struct (req_struct * rq, res_struct * rs, config_struct * conf)
-{
+void fill_get_res_struct (req_struct * rq, res_struct * rs, config_struct * conf) {
 
   char *file_name, *extension, *type;
   char file_path[MAXFILENAMEPATH];
@@ -243,23 +222,17 @@ fill_get_res_struct (req_struct * rq, res_struct * rs, config_struct * conf)
       fclose (fp);
     }
 
-    rs->connection = strdup (rq->connection);
     free (extension);
     free (file_name);
 
   }
-  else
-  {
-    fill_error_res_struct (rq, rs, conf,
-        HTTP_NOT_IMPLEMENTED_FILE_TYPE_FLAG);
-  }
+  else fill_error_res_struct (rq, rs, conf, HTTP_NOT_IMPLEMENTED_FILE_TYPE_FLAG);
 }
 
-  void
-fill_post_res_struct (req_struct * rq, res_struct * rs, config_struct * conf)
-{
+void fill_post_res_struct (req_struct * rq, res_struct * rs, config_struct * conf) {
   char *temp;
   int index, extra_memory;
+
   fill_get_res_struct (rq, rs, conf);
 
   // Writing the </body> makes this formatting agnostic, no matter the file formatting
@@ -280,9 +253,7 @@ fill_post_res_struct (req_struct * rq, res_struct * rs, config_struct * conf)
         HTTP_PRE_END_TAG, HTTP_END);
 }
 
-  size_t
-fill_res_body (FILE * fp, u_char ** buff)
-{
+size_t fill_res_body (FILE * fp, u_char ** buff) {
 
   size_t buff_size;
   fseek (fp, 0L, SEEK_END);
@@ -338,33 +309,30 @@ void process_request (req_struct * rq, u_char * dest_buff, ssize_t src_buff_len,
   res_struct rs;
 
   memset (&rs, 0, sizeof (rs));
+  memset(dest_buff, 0, sizeof(dest_buff));
+  // Case when no method is supplied by rest are send
+  if (rq->method != NULL){
+    DEBUGSS("Method", rq->method);
+    DEBUGSS(GET_HEADER, POST_HEADER);
+    if (strcmp (rq->method, GET_HEADER) == 0) fill_get_res_struct (rq, &rs, conf);
+    else if (strcmp (rq->method, POST_HEADER) == 0) fill_post_res_struct (rq, &rs, conf);
+    else fill_error_res_struct(rq, &rs, conf, HTTP_NOT_IMPLEMENTED_METHOD_FLAG);
 
-  if (strncmp (rq->method, GET_HEADER, GET_HEADER_LEN) == 0)
-  {
-
-    fill_get_res_struct (rq, &rs, conf);
-
-  }
-  else if (strncmp (rq->method, POST_HEADER, POST_HEADER_LEN) == 0)
-  {
-
-    fill_post_res_struct (rq, &rs, conf);
-
-  }
-  else
-  {
+  } else {
     // Requested method is not implemented
     fill_error_res_struct (rq, &rs, conf, HTTP_NOT_IMPLEMENTED_METHOD_FLAG);
   }
 
+  rs.connection = strdup(rq->connection);
+
   debug_res_struct (&rs);
   dest_buff_size = res_struct_to_buff (&rs, dest_buff);
 
-  free_res_struct (&rs);
   res_method->resbytes = dest_buff_size;
   // FALSE if rs->connection is connection close
   // TODO: handle the case where connection: value is something else
-  res_method->conn_alive_flag = TRUE ? strcmp (rs.connection, HTTP_REQ_CONNECTION_CLOSE) : FALSE;
+  res_method->conn_alive_flag = strcmp (rs.connection, HTTP_REQ_CONNECTION_CLOSE) == 0 ? FALSE : TRUE;
+  free_res_struct (&rs);
 }
 
 
@@ -374,9 +342,7 @@ check_rq_valid (req_struct * rq, res_struct * rs, config_struct * conf)
   return 1;
 }
 
-  void
-get_req_struct (req_struct * rq, char *buff, ssize_t buff_len)
-{
+void get_req_struct (req_struct * rq, char *buff, ssize_t buff_len) {
 
   char *temp_char, *temp_str, *temp_buff;
   ssize_t temp_buff_len, temp_len;
@@ -394,27 +360,12 @@ get_req_struct (req_struct * rq, char *buff, ssize_t buff_len)
 
 
   // Assuming that the first line is of type METHOD URI HTTP_VERSION
-  if (strncmp (temp_str, GET_HEADER, GET_HEADER_LEN) == 0
-      || strncmp (temp_str, POST_HEADER, POST_HEADER_LEN) == 0)
-  {
-    fill_req_struct (temp_str, rq, REQ_HEADER);
-  }
-  else
-    if (strncmp
-        (temp_str, HTTP_REQ_CONNECTION_PARAM,
-         HTTP_REQ_CONNECTION_PARAM_LEN) == 0)
-    {
-      fill_req_struct (temp_str, rq, HTTP_REQ_CONNECTION_PARAM);
-    }
-    else
-      if (strncmp
-          (temp_str, HTTP_REQ_CONTENT_LEN_PARAM,
-           HTTP_REQ_CONTENT_LEN_PARAM_LEN) == 0)
-      {
-        fill_req_struct (temp_str, rq, HTTP_REQ_CONTENT_LEN_PARAM);
-      }
+  if (strncmp (temp_str, GET_HEADER, GET_HEADER_LEN) == 0 || strncmp (temp_str, POST_HEADER, POST_HEADER_LEN) == 0) fill_req_struct (temp_str, rq, REQ_HEADER);
+  else if (strncmp (temp_str, HTTP_REQ_CONNECTION_PARAM, HTTP_REQ_CONNECTION_PARAM_LEN) == 0) fill_req_struct (temp_str, rq, HTTP_REQ_CONNECTION_PARAM);
+  else if (strncmp (temp_str, HTTP_REQ_CONTENT_LEN_PARAM, HTTP_REQ_CONTENT_LEN_PARAM_LEN) == 0) fill_req_struct (temp_str, rq, HTTP_REQ_CONTENT_LEN_PARAM);
 
   free (temp_str);
+
 
   free (temp_buff);
 }
