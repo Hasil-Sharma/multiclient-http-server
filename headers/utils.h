@@ -21,31 +21,31 @@
 
 typedef struct content_type_struct content_type_struct;
 
-struct config_struct {
+struct config_struct
+{
   u_short port_number;
-  char* doc_root;
-  char* doc_index;
+  char *doc_root;
+  char *doc_index;
   content_type_struct *content_type[MAXCONTENTTYPE];
   int keep_alive_time;
   int content_type_index;
 };
 
-struct content_type_struct {
+struct content_type_struct
+{
   char *extension;
   char *type;
 };
 
 typedef struct config_struct config_struct;
 
-void read_conf(config_struct *, char *);
-void get_second_string(char **, char *, char);
-void get_first_string(char **, char *, char);
-void get_extension(char **, char *);
-void print_config_struct(config_struct *);
-void remove_first_last_char(char **);
-void checkforerror(int, char *);
-ssize_t fill_buff_with_templates(char *, const char **, int );
+void read_conf (config_struct *, char *);
+void get_second_string (char **, char *, char);
+void get_first_string (char **, char *, char);
+void get_extension (char **, char *);
+void print_config_struct (config_struct *);
+void remove_first_last_char (char **);
+void checkforerror (int, char *);
+ssize_t fill_buff_with_templates (char *, const char **, int);
 
 #endif
-
-

@@ -41,10 +41,10 @@
 #define HTTP_RES_DELIM "\r\n"
 #define HTTP_RES_DELIM_LEN strlen(HTTP_RES_DELIM)
 
-#define HTTP_RES_CONTENT_TYPE "Content-Type: " //SPACE IS IMPORTANT
+#define HTTP_RES_CONTENT_TYPE "Content-Type: "	//SPACE IS IMPORTANT
 #define HTTP_RES_CONTENT_TYPE_LEN strlen(HTTP_RES_CONTENT_TYPE)
 
-#define HTTP_RES_CONTENT_LENGTH "Content-Length: " //SPACE IS IMPORTANT
+#define HTTP_RES_CONTENT_LENGTH "Content-Length: "	//SPACE IS IMPORTANT
 #define HTTP_RES_CONTENT_LENGTH_LEN strlen(HTTP_RES_CONTENT_LENGTH)
 
 #define HTTP_RES_CONNECTION "Connection: "
@@ -63,7 +63,7 @@
 #define HTTP_PRE_END_TAG "</pre>"
 #define HTTP_PRE_START_END_TAG_LEN strlen(HTTP_PRE_START_TAG) + strlen(HTTP_PRE_END_TAG)
 
-#define HTTP_RES_OK "HTTP/1.1 200 OK" 
+#define HTTP_RES_OK "HTTP/1.1 200 OK"
 #define HTTP_RES_OK_LEN strlen(HTTP_RES_OK)
 #define HTTP_REQ_CONNECTION_CLOSE "Close"
 
@@ -82,8 +82,8 @@
 #define HTTP_RES_404_TYPE "text/html"
 #define HTTP_RES_404_FILE_TEMPLATE "404 Not Found Reason URL does not exist: %s"
 
-#define HTTP_RES_BAD_REQ "HTTP/1.1 400 Bad Request" 
-#define HTTP_RES_BAD_REQ_TYPE "text/html" 
+#define HTTP_RES_BAD_REQ "HTTP/1.1 400 Bad Request"
+#define HTTP_RES_BAD_REQ_TYPE "text/html"
 #define HTTP_BAD_REQ_FLAG "BAD REQUEST"
 #define HTTP_BAD_REQ_FLAG_LEN strlen(HTTP_BAD_REQ_FLAG)
 
@@ -97,7 +97,8 @@
 #define HTTP_RES_BAD_REQ_INVALID_HTTP_TEMPLATE "Invalid HTTP-Version: %s"
 #define HTTP_RES_BAD_REQ_INVALID_FILE_TYPE_TEMPLATE "Invalid file-type: %s"
 
-struct req_struct{
+struct req_struct
+{
 
   char *method;
   char *uri;
@@ -110,7 +111,8 @@ struct req_struct{
 
 typedef struct req_struct req_struct;
 
-struct res_struct{
+struct res_struct
+{
 
   char *status_line;
   size_t content_length;
@@ -122,37 +124,40 @@ struct res_struct{
 
 typedef struct res_struct res_struct;
 
-struct process_req_res_struct {
+struct process_req_res_struct
+{
   ssize_t resbytes;
   int conn_alive_flag;
 };
 
 typedef struct process_req_res_struct process_req_res_struct;
-int get_socket(config_struct *);
+int get_socket (config_struct *);
 
-void process_request(req_struct *, u_char *, ssize_t, config_struct *, process_req_res_struct*);
-void send_response(int, char *, ssize_t);
-void get_req_struct(req_struct *, char *, ssize_t);
+void process_request (req_struct *, u_char *, ssize_t, config_struct *,
+		      process_req_res_struct *);
+void send_response (int, char *, ssize_t);
+void get_req_struct (req_struct *, char *, ssize_t);
 
-ssize_t update_buff(char *, char *, ssize_t);
-ssize_t update_buff_with_delim(char *, char *, ssize_t);
-ssize_t update_buff_as_delim(char *);
+ssize_t update_buff (char *, char *, ssize_t);
+ssize_t update_buff_with_delim (char *, char *, ssize_t);
+ssize_t update_buff_as_delim (char *);
 
-void fill_req_struct(char *, req_struct *, char *);
-void fill_error_res_struct(req_struct *, res_struct *, config_struct *, char *);
-void fill_get_res_struct(req_struct *, res_struct *, config_struct *);
-void fill_post_res_struct(req_struct *, res_struct *, config_struct *);
+void fill_req_struct (char *, req_struct *, char *);
+void fill_error_res_struct (req_struct *, res_struct *, config_struct *,
+			    char *);
+void fill_get_res_struct (req_struct *, res_struct *, config_struct *);
+void fill_post_res_struct (req_struct *, res_struct *, config_struct *);
 
-size_t fill_res_body(FILE *, u_char **);
+size_t fill_res_body (FILE *, u_char **);
 
-int check_rq_valid(req_struct *, res_struct *, config_struct *);
+int check_rq_valid (req_struct *, res_struct *, config_struct *);
 
-ssize_t res_struct_to_buff(res_struct *, u_char *);
-void rest_struct_to_buff(res_struct*, char *);
+ssize_t res_struct_to_buff (res_struct *, u_char *);
+void rest_struct_to_buff (res_struct *, char *);
 
-void free_res_struct(res_struct *);
-void free_req_struct(req_struct *);
-void debug_res_struct(res_struct *);
-void debug_req_struct(req_struct *);
+void free_res_struct (res_struct *);
+void free_req_struct (req_struct *);
+void debug_res_struct (res_struct *);
+void debug_req_struct (req_struct *);
 
 #endif
