@@ -1,5 +1,5 @@
 # Multiclient-HTTP-Server
-HTTP Server written in C which supports multiple client connections. Program handles multiple clients via forking, and while children are processing the requests parent process is available to accept other connections. Program also supports keeping the connection alive for a given time period, after which the server gracefully shutdowns.
+HTTP Server written in C which supports multiple client connections. Program handles multiple clients via forking, and while children are processing the requests parent process is available to accept other connections. Program also supports keeping the connection alive for a given time period, after which the child handling request gracefully shutdowns.
 
 To build the server run : make all
 To start the server run : "./run_server"
