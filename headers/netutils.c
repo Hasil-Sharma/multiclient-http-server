@@ -196,8 +196,8 @@ void fill_error_res_struct (req_struct * rq, res_struct * rs, config_struct * co
   else if (strcmp(flag, HTTP_RES_SERVER_ERROR_FLAG) == 0)
   {
     rs->status_line =  strcmp (rq->http_version, HTTP_1_1) == 0 ? strdup (HTTP_RES_11_SERVER_ERROR) : strdup(HTTP_RES_10_SERVER_ERROR);
-    template_array[1] = HTTP_RES_SERVER_OOM;
-    template_size = 2;
+    rs->content_type = strdup(HTTP_RES_NOT_IMPLEMENTED_TYPE);
+    template_size = 1;
   }
   else
   {
