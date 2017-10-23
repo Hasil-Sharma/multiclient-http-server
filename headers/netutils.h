@@ -76,6 +76,7 @@
 #define HTTP_RES_10_SERVER_ERROR "HTTP/1.0 500 Internal Server Error cannot allocate memory"
 #define HTTP_RES_SERVER_OOM "Cannot Alocate Memory"
 #define HTTP_RES_SERVER_ERROR_FLAG "500 Flag"
+#define HTTP_RES_SERVER_ERROR_TYPE "text/html"
 
 #define HTTP_RES_11_NOT_IMPLEMENTED "HTTP/1.1 501 Not Implemented"
 #define HTTP_RES_10_NOT_IMPLEMENTED "HTTP/1.0 501 Not Implemented"
