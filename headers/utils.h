@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #ifndef UTILS_H
 #define UTILS_H
 
@@ -46,6 +47,8 @@ void get_extension (char **, char *);
 void print_config_struct (config_struct *);
 void remove_first_last_char (char **);
 void checkforerror (int, char *);
+bool check_last_char(char *, char);
 ssize_t fill_buff_with_templates (char *, const char **, int);
 
 #endif
+

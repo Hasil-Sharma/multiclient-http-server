@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdbool.h>
 #include <sys/types.h>
 #include <string.h>
 #include "utils.h"
@@ -19,7 +20,7 @@
 #define POST_HEADER_LEN strlen(POST_HEADER)
 #define GET_HEADER "GET"
 #define GET_HEADER_LEN strlen(GET_HEADER)
-#define GET_URI_ROOT "/"
+#define GET_URI_ROOT '/'
 
 #define HTTP_REQ_CONTENT_LEN_PARAM "Content-Length: "
 #define HTTP_REQ_CONTENT_LEN_PARAM_LEN strlen(HTTP_REQ_CONTENT_LEN_PARAM)
@@ -53,10 +54,10 @@
 #define HTTP_RES_CONNECTION "Connection: "
 #define HTTP_RES_CONNECTION_KEEP_ALIVE "keep-alive"
 
-#define HTTP_GENERIC_TEMPLATE "<html><body>%s</body></html>"
+#define HTTP_GENERIC_TEMPLATE "<html><body>%s</body></html>\n"
 
 #define HTTP_BODY_END "</body>"
-#define HTTP_END "</body></html>"
+#define HTTP_END "</body></html>\n"
 #define HTTP_END_LEN strlen(HTTP_END)
 
 #define HTTP_POST_DATA_HEADING "<h1> POST DATA </h1>"
@@ -66,11 +67,18 @@
 #define HTTP_PRE_END_TAG "</pre>"
 #define HTTP_PRE_START_END_TAG_LEN strlen(HTTP_PRE_START_TAG) + strlen(HTTP_PRE_END_TAG)
 
-#define HTTP_RES_OK "HTTP/1.1 200 OK"
+#define HTTP_RES_11_OK "HTTP/1.1 200 OK"
+#define HTTP_RES_10_OK "HTTP/1.0 200 OK"
 #define HTTP_RES_OK_LEN strlen(HTTP_RES_OK)
 #define HTTP_REQ_CONNECTION_CLOSE "Close"
 
-#define HTTP_RES_NOT_IMPLEMENTED "HTTP/1.1 501 Not Implemented"
+#define HTTP_RES_11_SERVER_ERROR "HTTP/1.1 500 Internal Server Error cannot allocate memory"
+#define HTTP_RES_10_SERVER_ERROR "HTTP/1.0 500 Internal Server Error cannot allocate memory"
+#define HTTP_RES_SERVER_OOM "Cannot Alocate Memory"
+#define HTTP_RES_SERVER_ERROR_FLAG "500 Flag"
+
+#define HTTP_RES_11_NOT_IMPLEMENTED "HTTP/1.1 501 Not Implemented"
+#define HTTP_RES_10_NOT_IMPLEMENTED "HTTP/1.0 501 Not Implemented"
 #define HTTP_RES_NOT_IMPLEMENTED_TYPE "text/html"
 #define HTTP_RES_NOT_IMPLEMENTED_TEMPLATE "501 Not Implemented %s"
 #define HTTP_RES_NOT_IMPLEMENTED_METHOD_TEMPLATE "method: %s"
@@ -81,11 +89,13 @@
 #define HTTP_NOT_IMPLEMENTED_FILE_TYPE_FLAG HTTP_NOT_IMPLEMENTED_FLAG" FILE_TYPE"
 
 #define HTTP_RES_404_FLAG "404 Flag"
-#define HTTP_RES_404 "HTTP/1.1 404 Not Found"
+#define HTTP_RES_11_404 "HTTP/1.1 404 Not Found"
+#define HTTP_RES_10_404 "HTTP/1.0 404 Not Found"
 #define HTTP_RES_404_TYPE "text/html"
 #define HTTP_RES_404_FILE_TEMPLATE "404 Not Found Reason URL does not exist: %s"
 
-#define HTTP_RES_BAD_REQ "HTTP/1.1 400 Bad Request"
+#define HTTP_RES_11_BAD_REQ "HTTP/1.1 400 Bad Request"
+#define HTTP_RES_10_BAD_REQ "HTTP/1.0 400 Bad Request"
 #define HTTP_RES_BAD_REQ_TYPE "text/html"
 #define HTTP_BAD_REQ_FLAG "BAD REQUEST"
 #define HTTP_BAD_REQ_FLAG_LEN strlen(HTTP_BAD_REQ_FLAG)
@@ -140,7 +150,7 @@ int get_socket (config_struct *);
 void process_request (req_struct *, u_char *, ssize_t, config_struct *,
 		      process_req_res_struct *);
 void send_response (int, char *, ssize_t);
-void get_req_struct (req_struct *, char *, ssize_t);
+void get_req_struct (req_struct *, char *, ssize_t, int);
 
 ssize_t update_buff (char *, char *, ssize_t);
 ssize_t update_buff_with_delim (char *, char *, ssize_t);
@@ -158,6 +168,11 @@ int check_rq_valid (req_struct *, res_struct *, config_struct *);
 
 ssize_t res_struct_to_buff (res_struct *, u_char *);
 void rest_struct_to_buff (res_struct *, char *);
+
+bool check_uri(req_struct *);
+bool check_http_version(req_struct *);
+bool check_method(req_struct * );
+bool check_type(req_struct *, config_struct*);
 
 void free_res_struct (res_struct *);
 void free_req_struct (req_struct *);

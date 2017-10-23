@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include "utils.h"
 #include "debug.h"
 
@@ -14,6 +15,12 @@ void checkforerror (int val, char *error_msg)
   }
 }
 
+bool check_last_char(char *str, char c)
+{
+  if (!str) return false;
+  if (str[strlen(str) - 1] == c) return true;
+  return false;
+}
 void read_conf (config_struct * conf, char *file_name)
 {
 
@@ -65,6 +72,7 @@ void read_conf (config_struct * conf, char *file_name)
 
 
 void remove_first_last_char (char **str)
+
 {
   int len = strlen (*str);
 
@@ -101,7 +109,8 @@ void get_extension (char **dest, char *src)
 {
 
   char *delim_char = strrchr (src, '.');
-  *dest = strdup (delim_char);
+  if (!delim_char) *dest = NULL;
+  else *dest = strdup (delim_char);
   // dest will have the "." in the starting
 }
 

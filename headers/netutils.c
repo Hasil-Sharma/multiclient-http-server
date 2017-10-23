@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/unistd.h>
@@ -87,7 +88,8 @@ int check_extension_type (char *extension, char **type, config_struct * conf)
 
   int i;
   int flag = FALSE;
-  for (i = 0; i < MAXCONTENTTYPE; i++)
+  *type = NULL;
+  for (i = 0; i < MAXCONTENTTYPE && extension; i++)
   {
 
     if (!conf->content_type[i])
@@ -117,7 +119,7 @@ void fill_error_res_struct (req_struct * rq, res_struct * rs, config_struct * co
   {
 
     template_array[1] = HTTP_RES_BAD_REQ_TEMPLATE;
-    rs->status_line = strdup (HTTP_RES_BAD_REQ);
+    rs->status_line = strcmp(rq->http_version, HTTP_1_1)  == 0 ? strdup (HTTP_RES_11_BAD_REQ) : strdup (HTTP_RES_10_BAD_REQ);
     rs->content_type = strdup (HTTP_RES_BAD_REQ_TYPE);
 
     if (strcmp (flag, HTTP_BAD_REQ_INVALID_METHOD_FLAG) == 0)
@@ -160,7 +162,7 @@ void fill_error_res_struct (req_struct * rq, res_struct * rs, config_struct * co
   else if (strcmp (flag, HTTP_RES_404_FLAG) == 0)
   {
 
-    rs->status_line = strdup (HTTP_RES_404);
+    rs->status_line = strcmp(rq->http_version, HTTP_1_1) == 0 ? strdup (HTTP_RES_11_404) : strdup(HTTP_RES_10_404);
     rs->content_type = strdup (HTTP_RES_404_TYPE);
 
     template_array[1] = HTTP_RES_404_FILE_TEMPLATE;
@@ -171,7 +173,7 @@ void fill_error_res_struct (req_struct * rq, res_struct * rs, config_struct * co
   else if (strncmp (flag, HTTP_NOT_IMPLEMENTED_FLAG, HTTP_NOT_IMPLEMENTED_FLAG_LEN) == 0)
   {
 
-    rs->status_line = strdup (HTTP_RES_NOT_IMPLEMENTED);
+    rs->status_line =  strcmp (rq->http_version, HTTP_1_1) == 0 ? strdup (HTTP_RES_11_NOT_IMPLEMENTED) : strdup(HTTP_RES_10_NOT_IMPLEMENTED);
     rs->content_type = strdup (HTTP_RES_NOT_IMPLEMENTED_TYPE);
     template_array[1] = HTTP_RES_NOT_IMPLEMENTED_TEMPLATE;
 
@@ -191,6 +193,12 @@ void fill_error_res_struct (req_struct * rq, res_struct * rs, config_struct * co
     }
 
   }
+  else if (strcmp(flag, HTTP_RES_SERVER_ERROR_FLAG) == 0)
+  {
+    rs->status_line =  strcmp (rq->http_version, HTTP_1_1) == 0 ? strdup (HTTP_RES_11_SERVER_ERROR) : strdup(HTTP_RES_10_SERVER_ERROR);
+    template_array[1] = HTTP_RES_SERVER_OOM;
+    template_size = 2;
+  }
   else
   {
 
@@ -205,7 +213,7 @@ void fill_error_res_struct (req_struct * rq, res_struct * rs, config_struct * co
   memcpy (rs->body, data, data_length);
 }
 
-int check_http_version(req_struct *rq)
+bool  check_http_version(req_struct *rq)
 {
 
   if (strcmp(rq->http_version, HTTP_1_1) == 0 || strcmp(rq->http_version, HTTP_1_0) == 0) return 0;
@@ -215,52 +223,55 @@ int check_http_version(req_struct *rq)
 void fill_get_res_struct (req_struct * rq, res_struct * rs, config_struct * conf)
 {
 
-  char *file_name, *extension, *type;
+  char *file_name, *extension, *type, *temp;
   char file_path[MAXFILENAMEPATH];
-  int flag = 0;
+  int temp_len;
+
   FILE *fp;
 
-  if (strcmp (rq->uri, GET_URI_ROOT) == 0) file_name = strdup (conf->doc_index);
-  else file_name = strdup (rq->uri + 1); // +1 to skip the initial / and making it consistent with doc_index
-  flag = check_http_version(rq);
-  if (flag)
+  if (strchr (rq->uri, GET_URI_ROOT) == 0) file_name = strdup (conf->doc_index);
+  else if (check_last_char(rq->uri, GET_URI_ROOT))
   {
-    fill_error_res_struct(rq, rs, conf, HTTP_BAD_REQ_INVALID_HTTP_FLAG);
+    temp = strdup (conf->doc_index);
+    temp_len = strlen(temp);
+    file_name = (char *) malloc(temp_len + strlen(rq->uri) + 1);
+    sprintf(file_name, "%s%s", rq->uri + 1, temp);
+    free(temp);
   }
-  else
+  else if (strchr (rq->uri, '.')) file_name = strdup(rq->uri + 1);
+  else file_name = strdup (rq->uri + 1); // +1 to skip the initial / and making it consistent with doc_index
+
+  get_extension (&extension, file_name);
+
+  if (check_extension_type (extension, &type, conf))
   {
-    get_extension (&extension, file_name);
-    if (check_extension_type (extension, &type, conf))
+
+    rs->content_type = strdup (type);
+
+    if (sprintf (file_path, "%s/%s", conf->doc_root, file_name) < 0)
     {
-
-      rs->content_type = strdup (type);
-
-      if (sprintf (file_path, "%s/%s", conf->doc_root, file_name) < 0)
-      {
-        perror ("Error in making file path string:");
-        exit (1);
-      }
-
-      if (!(fp = fopen (file_path, "rb")))
-      {
-        // Case when request file doesn't exist
-        fill_error_res_struct (rq, rs, conf, HTTP_RES_404_FLAG);
-      }
-
-      // TODO: Test it works fine
-
-      if (fp)
-      {
-        rs->content_length = fill_res_body (fp, &(rs->body));
-        rs->status_line = strdup (HTTP_RES_OK);
-        fclose (fp);
-      }
-
-      free (extension);
-      free (file_name);
-
+      perror ("Error in making file path string:");
+      exit (1);
     }
-    else fill_error_res_struct (rq, rs, conf, HTTP_NOT_IMPLEMENTED_FILE_TYPE_FLAG);
+
+    if (!(fp = fopen (file_path, "rb")))
+    {
+      // Case when request file doesn't exist
+      fill_error_res_struct (rq, rs, conf, HTTP_RES_404_FLAG);
+    }
+
+    // TODO: Test it works fine
+
+    if (fp)
+    {
+      rs->content_length = fill_res_body (fp, &(rs->body));
+      rs->status_line = strcmp(rq->http_version, HTTP_1_1) == 0 ? strdup (HTTP_RES_11_OK) : strdup(HTTP_RES_10_OK);
+      fclose (fp);
+    }
+
+    free (extension);
+    free (file_name);
+
   }
 }
 
@@ -268,25 +279,71 @@ void fill_post_res_struct (req_struct * rq, res_struct * rs, config_struct * con
 {
   char *temp;
   int index, extra_memory;
+  int temp_len;
+  char *file_name, *extension, *type;
+  char file_path[MAXFILENAMEPATH];
 
-  fill_get_res_struct (rq, rs, conf);
+  FILE *fp;
 
-  // Writing the </body> makes this formatting agnostic, no matter the file formatting
-  // this will work
+  if (strchr (rq->uri, GET_URI_ROOT) == 0) file_name = strdup (conf->doc_index);
+  else if (check_last_char(rq->uri, GET_URI_ROOT))
+  {
+    temp = strdup (conf->doc_index);
+    temp_len = strlen(temp);
+    file_name = (char *) malloc(temp_len + strlen(rq->uri) + 1);
+    sprintf(file_name, "%s/%s", rq->uri + 1, temp);
+    free(temp);
+  }
+  else if (strchr (rq->uri, '.')) file_name = strdup(rq->uri + 1);
+  else file_name = strdup (rq->uri + 1); // +1 to skip the initial / and making it consistent with doc_index
 
-  temp = strstr (rs->body, HTTP_BODY_END);
-  memset (temp, 0, sizeof (u_char));
-  rs->content_length -= rs->content_length - (temp - (char *) rs->body);
+  get_extension (&extension, file_name);
 
-  extra_memory =
-    rq->content_length + HTTP_POST_DATA_HEADING_LEN +
-    HTTP_PRE_START_END_TAG_LEN + HTTP_END_LEN;
+  if (check_extension_type (extension, &type, conf))
+  {
 
-  rs->body = (u_char *) realloc (rs->body, rs->content_length + extra_memory);
-  rs->content_length +=
-    sprintf (rs->body + rs->content_length, "%s%s%s%s%s",
-             HTTP_POST_DATA_HEADING, HTTP_PRE_START_TAG, rq->content,
-             HTTP_PRE_END_TAG, HTTP_END);
+    rs->content_type = strdup (type);
+
+    if (sprintf (file_path, "%s/%s", conf->doc_root, file_name) < 0)
+    {
+      perror ("Error in making file path string:");
+      exit (1);
+    }
+
+    if (!(fp = fopen (file_path, "rb")))
+    {
+      // Case when request file doesn't exist
+      fill_error_res_struct (rq, rs, conf, HTTP_RES_404_FLAG);
+      free(extension);
+      free(file_name);
+      return;
+    }
+
+    // TODO: Test it works fine
+
+    if (fp)
+    {
+      rs->content_length = fill_res_body (fp, &(rs->body));
+      rs->status_line = strcmp(rq->http_version, HTTP_1_1) == 0 ? strdup (HTTP_RES_11_OK) : strdup(HTTP_RES_10_OK);
+      fclose (fp);
+    }
+
+    free (extension);
+    free (file_name);
+
+    // Writing the </body> makes this formatting agnostic, no matter the file formatting
+    // this will work
+
+    temp = strstr (rs->body, HTTP_BODY_END);
+    memset (temp, 0, sizeof (u_char));
+    rs->content_length -= rs->content_length - (temp - (char *) rs->body);
+
+    extra_memory = rq->content_length + HTTP_POST_DATA_HEADING_LEN + HTTP_PRE_START_END_TAG_LEN + HTTP_END_LEN + 1;
+
+    rs->body = (u_char *) realloc (rs->body, rs->content_length + extra_memory);
+    rs->content_length += sprintf (rs->body + rs->content_length, "%s%s%s%s%s", HTTP_POST_DATA_HEADING, HTTP_PRE_START_TAG, rq->content, HTTP_PRE_END_TAG, HTTP_END);
+  }
+
 }
 
 size_t fill_res_body (FILE * fp, u_char ** buff)
@@ -335,7 +392,55 @@ ssize_t res_struct_to_buff (res_struct * rs, u_char * buff)
 
 }
 
+// TODO
+bool  check_uri (req_struct *rq)
+{
+  char *temp;
+  char *illegal_strings[13] = { "<", ">", "#", "%", "<\">", "{", "}", "|", "\\", "^", "[", "]", "`"};
+  int illegal_strings_size = 13, i;
 
+  if (rq->uri && rq->uri[0] == '/')
+  {
+    temp = rq->uri;
+    for (i = 0; i < illegal_strings_size; i++)
+    {
+      if (strstr(rq->uri, illegal_strings[i])) return true;
+    }
+
+    return false;
+  }
+
+  return true;
+}
+
+bool check_method(req_struct * rq)
+{
+  if ( rq->method != NULL && !(strcmp (rq->method, POST_HEADER) == 0 || strcmp(rq->method, GET_HEADER) == 0) ) return true;
+  return false;
+}
+
+bool check_type(req_struct *rq, config_struct *conf)
+{
+  char *extension, *uri, *file_name, *type;
+  bool return_value;
+  if (rq->uri == NULL) return true;
+  uri = rq->uri;
+
+// If it is just the "/"
+  if (check_last_char(uri, '/')) return false;
+
+  file_name = strdup(uri + 1);
+  get_extension(&extension, file_name);
+
+  return_value = check_extension_type(extension, &type, conf);
+
+  free(file_name);
+  free(extension);
+  free(type);
+
+  return !return_value;
+
+}
 void process_request (req_struct * rq, u_char * dest_buff, ssize_t src_buff_len, config_struct * conf, process_req_res_struct * res_method)
 {
 
@@ -343,24 +448,30 @@ void process_request (req_struct * rq, u_char * dest_buff, ssize_t src_buff_len,
   ssize_t dest_buff_size = 0,  dest_content_length = 0;
   char file_name[MAXFILENAMEPATH];
   res_struct rs;
-
+  bool http_flag, uri_flag, method_flag, type_flag;
   memset (&rs, 0, sizeof (rs));
   memset(dest_buff, 0, sizeof(dest_buff));
   // Case when no method is supplied by rest are send
-  if (rq->method != NULL)
+  // TODO: Do the flag thing for type as well
+  http_flag = check_http_version(rq);
+  uri_flag = check_uri(rq);
+  method_flag = check_method(rq);
+  type_flag = check_type(rq, conf);
+
+  if (method_flag) fill_error_res_struct(rq, &rs, conf, HTTP_NOT_IMPLEMENTED_METHOD_FLAG);
+  else if (uri_flag) fill_error_res_struct(rq, &rs, conf, HTTP_BAD_REQ_INVALID_URI_FLAG);
+  else if (type_flag) fill_error_res_struct(rq, &rs, conf, HTTP_NOT_IMPLEMENTED_FILE_TYPE_FLAG);
+  else if (http_flag) fill_error_res_struct(rq, &rs, conf, HTTP_BAD_REQ_INVALID_HTTP_FLAG);
+  else if (rq->method != NULL)
   {
-    DEBUGSS("Method", rq->method);
-    DEBUGSS(GET_HEADER, POST_HEADER);
     if (strcmp (rq->method, GET_HEADER) == 0) fill_get_res_struct (rq, &rs, conf);
     else if (strcmp (rq->method, POST_HEADER) == 0) fill_post_res_struct (rq, &rs, conf);
-    else fill_error_res_struct(rq, &rs, conf, HTTP_NOT_IMPLEMENTED_METHOD_FLAG); // Case when Request Method is neither GET or POST
-
   }
-  else
-  {
-    // Requested method is not implemented
-    fill_error_res_struct (rq, &rs, conf, HTTP_NOT_IMPLEMENTED_METHOD_FLAG);
-  }
+  /*else*/
+  /*{*/
+  /*// Requested method is not implemented*/
+  /*fill_error_res_struct (rq, &rs, conf, HTTP_NOT_IMPLEMENTED_METHOD_FLAG);*/
+  /*}*/
 
   rs.connection = strdup(rq->connection);
 
@@ -375,7 +486,7 @@ void process_request (req_struct * rq, u_char * dest_buff, ssize_t src_buff_len,
 }
 
 
-void get_req_struct (req_struct * rq, char *buff, ssize_t buff_len)
+void get_req_struct (req_struct * rq, char *buff, ssize_t buff_len, int first_flag)
 {
 
   char *temp_char, *temp_str, *temp_buff;
@@ -394,7 +505,9 @@ void get_req_struct (req_struct * rq, char *buff, ssize_t buff_len)
 
 
   // Assuming that the first line is of type METHOD URI HTTP_VERSION
-  if (strncmp (temp_str, GET_HEADER, GET_HEADER_LEN) == 0 || strncmp (temp_str, POST_HEADER, POST_HEADER_LEN) == 0) fill_req_struct (temp_str, rq, REQ_HEADER);
+
+  //if (strncmp (temp_str, GET_HEADER, GET_HEADER_LEN) == 0 || strncmp (temp_str, POST_HEADER, POST_HEADER_LEN) == 0) fill_req_struct (temp_str, rq, REQ_HEADER);
+  if (first_flag == 1 && rq->method == NULL) fill_req_struct(temp_str, rq, REQ_HEADER);
   else if (strncmp (temp_str, HTTP_REQ_CONNECTION_PARAM, HTTP_REQ_CONNECTION_PARAM_LEN) == 0) fill_req_struct (temp_str, rq, HTTP_REQ_CONNECTION_PARAM);
   else if (strncmp (temp_str, HTTP_REQ_CONTENT_LEN_PARAM, HTTP_REQ_CONTENT_LEN_PARAM_LEN) == 0) fill_req_struct (temp_str, rq, HTTP_REQ_CONTENT_LEN_PARAM);
 

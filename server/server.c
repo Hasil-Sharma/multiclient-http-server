@@ -98,16 +98,24 @@ int main ()
         expect_data = 0;
         DEBUGSN ("Reading Child PID:", getpid ());
         memset (&rq, 0, sizeof (req_struct));
+        first_flag = 0;
         while (keepRunning)
         {
+          if ( rq.method != NULL)
+          {
+            if (!(strcmp (rq.method, POST_HEADER) == 0 || strcmp(rq.method, GET_HEADER) == 0)) break; // Break if the method is neither GET or POSt
 
-          if (expect_data == 1 && rq.method != NULL)
-            if (strcmp (rq.method, POST_HEADER) == 0)
-              read_bytes = rq.content_length;
-            else // In case of any other command break helps in handling the GET case
-              break;
+            if (expect_data == 1)
+              if (strcmp (rq.method, POST_HEADER) == 0)
+                read_bytes = rq.content_length;
+              else // In case of any other command break helps in handling the GET case
+                break;
+          }
+          if (first_flag == 1 && rq.method == NULL) break; // Case when method is not sent in the first requet header
+          
+          if (read_bytes != 0) recvbytes = recv (conn_fd, req_buff + nbytes, read_bytes, 0);
+          else recvbytes = 0;
 
-          recvbytes = recv (conn_fd, req_buff + nbytes, read_bytes, 0);
           if (recvbytes == 0 | recvbytes == -1)
             break;
           checkforerror (recvbytes, "Error with recv");
@@ -120,14 +128,14 @@ int main ()
           }
           if (strstr (req_buff, HTTP_REQ_DELIM))
           {
-
+            first_flag = 1;
             if (strcmp (req_buff, HTTP_REQ_DELIM) == 0 && rq.method != NULL)
             {
               expect_data += 1;
             }
             else
             {
-              get_req_struct (&rq, req_buff, nbytes);
+              get_req_struct (&rq, req_buff, nbytes, first_flag);
             }
             // rest the reading parameters
             nbytes = 0;
@@ -140,7 +148,7 @@ int main ()
 
         debug_req_struct (&rq);
 
-        if (recvbytes == 0 || recvbytes == -1)
+        if ((recvbytes == 0 || recvbytes == -1) && first_flag == 0)
         {
           DEBUGSN ("Closing Child PID:", getpid ());
           if (recvbytes == -1)
