@@ -9,6 +9,7 @@ HTTP_REQ_END='\r\n\r\n'
 
 # Normal Requests
 (echo -en "GET / HTTP/1.1${HTTP_REQ_DELIM}Connection: Close${HTTP_REQ_END}") | nc $HOST $PORT
+(echo -en "GET / HTTP/1.0${HTTP_REQ_DELIM}Connection: Close${HTTP_REQ_END}") | nc $HOST $PORT
 (echo -en "GET / HTTP/1.1${HTTP_REQ_DELIM}Connection: keep-alive${HTTP_REQ_END}GET / HTTP/1.1${HTTP_REQ_DELIM}Connection: keep-alive${HTTP_REQ_END}") | nc $HOST $PORT
 
 (echo -en "POST / HTTP/1.1${HTTP_REQ_DELIM}Connection: Close${HTTP_REQ_DELIM}Content-Length: 2${HTTP_REQ_END}12") |  nc $HOST $PORT

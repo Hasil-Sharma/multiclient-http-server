@@ -234,7 +234,7 @@ void fill_get_res_struct (req_struct * rq, res_struct * rs, config_struct * conf
   {
     temp = strdup (conf->doc_index);
     temp_len = strlen(temp);
-    file_name = (char *) malloc(temp_len + strlen(rq->uri) + 1);
+    file_name = (char *) malloc(temp_len + strlen(rq->uri) + 2);
     sprintf(file_name, "%s%s", rq->uri + 1, temp);
     free(temp);
   }
@@ -265,6 +265,11 @@ void fill_get_res_struct (req_struct * rq, res_struct * rs, config_struct * conf
     if (fp)
     {
       rs->content_length = fill_res_body (fp, &(rs->body));
+      if (rs->content_length == -1)
+      {
+        fill_error_res_struct(rq, rs, conf, HTTP_RES_SERVER_ERROR_FLAG);
+        return ;
+      }
       rs->status_line = strcmp(rq->http_version, HTTP_1_1) == 0 ? strdup (HTTP_RES_11_OK) : strdup(HTTP_RES_10_OK);
       fclose (fp);
     }
@@ -324,6 +329,11 @@ void fill_post_res_struct (req_struct * rq, res_struct * rs, config_struct * con
     if (fp)
     {
       rs->content_length = fill_res_body (fp, &(rs->body));
+      if (rs->content_length == -1)
+      {
+        fill_error_res_struct(rq, rs, conf, HTTP_RES_SERVER_ERROR_FLAG);
+        return ;
+      }
       rs->status_line = strcmp(rq->http_version, HTTP_1_1) == 0 ? strdup (HTTP_RES_11_OK) : strdup(HTTP_RES_10_OK);
       fclose (fp);
     }
@@ -358,14 +368,16 @@ size_t fill_res_body (FILE * fp, u_char ** buff)
   // Check if buff_size + 1 is correct strategy
   if (!(*buff = (u_char *) malloc ((buff_size + 1) * sizeof (u_char))))
   {
-    perror ("Error in mallocing buff:");
-    exit (1);
+    /*perror ("Error in mallocing buff:");*/
+    /*exit (1);*/
+    return -1;
   }
 
   if (fread (*buff, buff_size, 1, fp) < 0)
   {
-    perror ("Error in copying data to the buff:");
-    exit (1);
+    /*perror ("Error in copying data to the buff:");*/
+    /*exit (1);*/
+    return -1;
   }
 
   return buff_size;
